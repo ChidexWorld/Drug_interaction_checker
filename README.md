@@ -5,12 +5,14 @@ A condition-aware drug interaction checker with real-time clinical alerts design
 ## Features
 
 ### Core Functionality
+
 - **Drug Interaction Checking**: Check for harmful combinations between multiple drugs
 - **Severity Levels**: Major, Moderate, Minor, and Contraindicated interactions
 - **Clinical Notes**: Detailed explanations for each interaction
 - **Alternative Suggestions**: Safer drug alternatives for high-risk combinations
 
 ### Advanced Features
+
 - **Condition-Aware Alerts**: Adjusts interaction severity based on patient conditions
 - **Symptom-to-Condition Mapping**: Maps symptoms to possible conditions for enhanced alerts
 - **Real-Time Alerts**: Color-coded flags and instant warnings
@@ -27,6 +29,7 @@ A condition-aware drug interaction checker with real-time clinical alerts design
 ## Database Schema
 
 ### Core Tables
+
 1. **Drug** - Master list of drugs with names, classes, brands, and manufacturers
 2. **Interaction** - Base interactions between drugs with descriptions
 3. **Condition** - Predefined medical conditions
@@ -38,9 +41,51 @@ A condition-aware drug interaction checker with real-time clinical alerts design
 
 ## Installation
 
-1. Clone the repository
-2. Install dependencies: `npm run install-all`
-3. Start development server: `npm run dev`
+### Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/ChidexWorld/Drug_interaction_checker.git
+cd Drug_interaction_checker
+
+# Install all dependencies
+npm run install-all
+
+# Start development servers
+npm run dev
+```
+
+### Manual Setup
+
+```bash
+# Install root dependencies
+npm install
+
+# Setup backend
+cd server
+npm install
+node scripts/initDatabase.js
+node scripts/seedDatabase.js
+node scripts/seedInteractions.js
+
+# Setup frontend
+cd ../client
+npm install
+
+# Start servers (in separate terminals)
+cd ../server && npm run dev     # Backend on :5000
+cd ../client && npm run dev     # Frontend on :3000
+```
+
+### Quick Demo (No Dependencies Required)
+
+```bash
+# Start simple server
+cd server
+node simple-server.js
+
+# Open demo.html in browser or visit the file directly
+```
 
 ## Usage
 

@@ -1,0 +1,25 @@
+{
+  "name": "precious-drug-interaction-checker",
+  "version": "1.0.0",
+  "description": "Condition-Aware Drug Interaction Checker with Real-Time Clinical Alerts",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && npm run dev",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": [
+    "drug-interaction",
+    "healthcare",
+    "pharmacy",
+    "medical",
+    "condition-aware"
+  ],
+  "author": "Precious Development Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

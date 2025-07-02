@@ -1,5 +1,5 @@
-import axios from 'axios';
-import {
+import axios from "axios";
+import type {
   Drug,
   DrugSearchResponse,
   InteractionCheckResponse,
@@ -7,16 +7,17 @@ import {
   SymptomsResponse,
   SuggestConditionsResponse,
   Condition,
-  Symptom
-} from '../types';
+  Symptom,
+} from "../types/index";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -27,7 +28,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('API Request Error:', error);
+    console.error("API Request Error:", error);
     return Promise.reject(error);
   }
 );
@@ -38,7 +39,7 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('API Response Error:', error.response?.data || error.message);
+    console.error("API Response Error:", error.response?.data || error.message);
     return Promise.reject(error);
   }
 );
@@ -46,17 +47,20 @@ api.interceptors.response.use(
 // Drug API endpoints
 export const drugAPI = {
   // Search drugs by name (generic or brand)
-  searchDrugs: async (query: string, limit: number = 20): Promise<DrugSearchResponse> => {
-    const response = await api.get('/drugs/search', {
-      params: { query, limit }
+  searchDrugs: async (
+    query: string,
+    limit: number = 20
+  ): Promise<DrugSearchResponse> => {
+    const response = await api.get("/drugs/search", {
+      params: { query, limit },
     });
     return response.data;
   },
 
   // Get all drugs with pagination
   getAllDrugs: async (page: number = 1, limit: number = 20) => {
-    const response = await api.get('/drugs', {
-      params: { page, limit }
+    const response = await api.get("/drugs", {
+      params: { page, limit },
     });
     return response.data;
   },
@@ -71,7 +75,7 @@ export const drugAPI = {
   getDrugInteractions: async (id: number) => {
     const response = await api.get(`/drugs/${id}/interactions`);
     return response.data;
-  }
+  },
 };
 
 // Interaction API endpoints
@@ -81,19 +85,19 @@ export const interactionAPI = {
     drugIds: number[],
     conditionId?: number
   ): Promise<InteractionCheckResponse> => {
-    const response = await api.post('/interactions/check', {
+    const response = await api.post("/interactions/check", {
       drug_ids: drugIds,
-      condition_id: conditionId
+      condition_id: conditionId,
     });
     return response.data;
-  }
+  },
 };
 
 // Condition API endpoints
 export const conditionAPI = {
   // Get all conditions
   getAllConditions: async (): Promise<ConditionsResponse> => {
-    const response = await api.get('/conditions');
+    const response = await api.get("/conditions");
     return response.data;
   },
 
@@ -107,21 +111,21 @@ export const conditionAPI = {
   getConditionInteractions: async (id: number) => {
     const response = await api.get(`/conditions/${id}/interactions`);
     return response.data;
-  }
+  },
 };
 
 // Symptom API endpoints
 export const symptomAPI = {
   // Get all symptoms
   getAllSymptoms: async (): Promise<SymptomsResponse> => {
-    const response = await api.get('/symptoms');
+    const response = await api.get("/symptoms");
     return response.data;
   },
 
   // Search symptoms
   searchSymptoms: async (query: string, limit: number = 20) => {
-    const response = await api.get('/symptoms/search', {
-      params: { query, limit }
+    const response = await api.get("/symptoms/search", {
+      params: { query, limit },
     });
     return response.data;
   },
@@ -133,20 +137,22 @@ export const symptomAPI = {
   },
 
   // Suggest conditions based on symptoms
-  suggestConditions: async (symptomIds: number[]): Promise<SuggestConditionsResponse> => {
-    const response = await api.post('/symptoms/suggest-conditions', {
-      symptom_ids: symptomIds
+  suggestConditions: async (
+    symptomIds: number[]
+  ): Promise<SuggestConditionsResponse> => {
+    const response = await api.post("/symptoms/suggest-conditions", {
+      symptom_ids: symptomIds,
     });
     return response.data;
-  }
+  },
 };
 
 // Health check
 export const healthAPI = {
   checkHealth: async () => {
-    const response = await api.get('/health');
+    const response = await api.get("/health");
     return response.data;
-  }
+  },
 };
 
 export default api;

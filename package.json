@@ -8,7 +8,8 @@
     "server": "cd server && npm run dev",
     "client": "cd client && npm start",
     "build": "cd client && npm run build",
-    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install",
+    "start:prod": "cd client && npm run build && cd ../server && npm run start:prod"
   },
   "keywords": [
     "drug-interaction",
@@ -20,6 +21,19 @@
   "author": "Precious Development Team",
   "license": "MIT",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@vitejs/plugin-react": "^4.6.0",
+    "concurrently": "^8.2.2",
+    "vite": "^7.0.0"
+  },
+  "dependencies": {
+    "autoprefixer": "^10.4.21",
+    "axios": "^1.10.0",
+    "dotenv": "^17.0.0",
+    "lucide-react": "^0.525.0",
+    "mysql2": "^3.14.1",
+    "postcss": "^8.5.6",
+    "react-router-dom": "^7.6.3",
+    "react-toastify": "^11.0.5",
+    "tailwindcss": "^4.1.11"
   }
 }

@@ -1,7 +1,7 @@
-import React from 'react';
-import { ChevronDown, X } from 'lucide-react';
-import { Condition } from '../types';
-import LoadingSpinner from './LoadingSpinner';
+import React from "react";
+import { ChevronDown, X } from "lucide-react";
+import type { Condition } from "../types";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface ConditionSelectProps {
   conditions: Condition[];
@@ -14,13 +14,27 @@ const ConditionSelect: React.FC<ConditionSelectProps> = ({
   conditions,
   selectedCondition,
   onConditionSelect,
-  loading = false
+  loading = false,
 }) => {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-4">
+      <div
+        className="flex items-center justify-center py-4"
+        role="status"
+        aria-live="polite"
+      >
         <LoadingSpinner size="sm" />
-        <span className="ml-2 text-sm text-gray-600">Loading conditions...</span>
+        <span className="ml-2 text-sm text-gray-600">
+          Loading conditions...
+        </span>
+      </div>
+    );
+  }
+
+  if (!loading && (!conditions || conditions.length === 0)) {
+    return (
+      <div className="flex items-center justify-center py-4 text-gray-500 text-sm">
+        No conditions available.
       </div>
     );
   }
@@ -31,19 +45,31 @@ const ConditionSelect: React.FC<ConditionSelectProps> = ({
       {selectedCondition && (
         <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div>
-            <div className="font-medium text-blue-900">{selectedCondition.name}</div>
-            <div className="text-sm text-blue-700">{selectedCondition.description}</div>
-            {selectedCondition.symptoms && selectedCondition.symptoms.length > 0 && (
-              <div className="text-xs text-blue-600 mt-1">
-                Related symptoms: {Array.isArray(selectedCondition.symptoms) 
-                  ? selectedCondition.symptoms.slice(0, 3).join(', ')
-                  : selectedCondition.symptoms.split(',').slice(0, 3).join(', ')
-                }
-                {(Array.isArray(selectedCondition.symptoms) 
-                  ? selectedCondition.symptoms.length 
-                  : selectedCondition.symptoms.split(',').length) > 3 && ' +more'}
-              </div>
-            )}
+            <div className="font-medium text-blue-900">
+              {selectedCondition.name}
+            </div>
+            <div className="text-sm text-blue-700">
+              {selectedCondition.description}
+            </div>
+            {selectedCondition.symptoms &&
+              selectedCondition.symptoms.length > 0 && (
+                <div className="text-xs text-blue-600 mt-1">
+                  Related symptoms:{" "}
+                  {Array.isArray(selectedCondition.symptoms)
+                    ? selectedCondition.symptoms
+                        .slice(0, 3)
+                        .map((s) => (typeof s === "string" ? s : s.name))
+                        .join(", ")
+                    : String(selectedCondition.symptoms)
+                        .split(",")
+                        .slice(0, 3)
+                        .join(", ")}
+                  {(Array.isArray(selectedCondition.symptoms)
+                    ? selectedCondition.symptoms.length
+                    : String(selectedCondition.symptoms).split(",").length) >
+                    3 && " +more"}
+                </div>
+              )}
           </div>
           <button
             onClick={() => onConditionSelect(null)}
@@ -61,11 +87,12 @@ const ConditionSelect: React.FC<ConditionSelectProps> = ({
           <select
             onChange={(e) => {
               const conditionId = parseInt(e.target.value);
-              const condition = conditions.find(c => c.id === conditionId);
+              const condition = conditions.find((c) => c.id === conditionId);
               onConditionSelect(condition || null);
             }}
-            value=""
+            value={""}
             className="input appearance-none pr-10 cursor-pointer"
+            aria-label="Select a medical condition"
           >
             <option value="">Select a medical condition (optional)</option>
             {conditions.map((condition) => (
@@ -88,9 +115,15 @@ const ConditionSelect: React.FC<ConditionSelectProps> = ({
           </div>
           <div className="flex flex-wrap gap-2">
             {conditions
-              .filter(condition => 
-                ['Hypertension', 'Diabetes', 'Heart Failure', 'Kidney Disease', 'Pregnancy', 'Elderly (65+)']
-                  .includes(condition.name)
+              .filter((condition) =>
+                [
+                  "Hypertension",
+                  "Diabetes",
+                  "Heart Failure",
+                  "Kidney Disease",
+                  "Pregnancy",
+                  "Elderly (65+)",
+                ].includes(condition.name)
               )
               .map((condition) => (
                 <button
@@ -108,18 +141,24 @@ const ConditionSelect: React.FC<ConditionSelectProps> = ({
       {/* Severity Level Indicator */}
       {selectedCondition && (
         <div className="text-xs text-gray-600">
-          <span className="font-medium">Severity Level:</span>{' '}
-          <span className={`
+          <span className="font-medium">Severity Level:</span>{" "}
+          <span
+            className={`
             px-2 py-1 rounded-full text-xs font-medium
-            ${selectedCondition.severity_level === 3 
-              ? 'bg-red-100 text-red-800' 
-              : selectedCondition.severity_level === 2 
-              ? 'bg-yellow-100 text-yellow-800' 
-              : 'bg-green-100 text-green-800'
+            ${
+              selectedCondition.severity_level === 3
+                ? "bg-red-100 text-red-800"
+                : selectedCondition.severity_level === 2
+                ? "bg-yellow-100 text-yellow-800"
+                : "bg-green-100 text-green-800"
             }
-          `}>
-            {selectedCondition.severity_level === 3 ? 'High' : 
-             selectedCondition.severity_level === 2 ? 'Moderate' : 'Low'}
+          `}
+          >
+            {selectedCondition.severity_level === 3
+              ? "High"
+              : selectedCondition.severity_level === 2
+              ? "Moderate"
+              : "Low"}
           </span>
         </div>
       )}

@@ -1,64 +1,85 @@
-const express = require('express');
-const database = require('../database/connection');
+const express = require("express");
+const database = require("../database/connection");
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Conditions
+ *   description: Medical conditions
+ */
+
 // GET /api/conditions - Get all conditions
-router.get('/', async (req, res, next) => {
-    try {
-        const conditions = await database.all(`
+/**
+ * @swagger
+ * /api/conditions:
+ *   get:
+ *     summary: Get all conditions
+ *     tags: [Conditions]
+ *     responses:
+ *       200:
+ *         description: List of conditions
+ */
+router.get("/", async (req, res, next) => {
+  try {
+    const conditions = await database.all(`
             SELECT 
                 c.id,
                 c.name,
                 c.description,
                 c.severity_level,
                 GROUP_CONCAT(s.name) as symptoms
-            FROM Condition c
+            FROM \`Condition\` c
             LEFT JOIN Condition_Symptom_Map csm ON c.id = csm.condition_id
             LEFT JOIN Symptom s ON csm.symptom_id = s.id
             GROUP BY c.id, c.name, c.description, c.severity_level
             ORDER BY c.name
         `);
 
-        res.json({
-            conditions: conditions.map(condition => ({
-                ...condition,
-                symptoms: condition.symptoms ? condition.symptoms.split(',') : []
-            }))
-        });
-    } catch (error) {
-        console.error('Error fetching conditions:', error);
-        next({ type: 'database', message: error.message });
-    }
+    res.json({
+      conditions: conditions.map((condition) => ({
+        ...condition,
+        symptoms: condition.symptoms ? condition.symptoms.split(",") : [],
+      })),
+    });
+  } catch (error) {
+    console.error("Error fetching conditions:", error);
+    next({ type: "database", message: error.message });
+  }
 });
 
 // GET /api/conditions/:id - Get specific condition details
-router.get('/:id', async (req, res, next) => {
-    try {
-        const conditionId = parseInt(req.params.id);
-        
-        if (isNaN(conditionId)) {
-            return res.status(400).json({
-                error: 'Invalid condition ID',
-                message: 'Condition ID must be a number'
-            });
-        }
+router.get("/:id", async (req, res, next) => {
+  try {
+    const conditionId = parseInt(req.params.id);
 
-        const condition = await database.get(`
+    if (isNaN(conditionId)) {
+      return res.status(400).json({
+        error: "Invalid condition ID",
+        message: "Condition ID must be a number",
+      });
+    }
+
+    const condition = await database.get(
+      `
             SELECT id, name, description, severity_level, created_at
-            FROM Condition
+            FROM \`Condition\`
             WHERE id = ?
-        `, [conditionId]);
+        `,
+      [conditionId]
+    );
 
-        if (!condition) {
-            return res.status(404).json({
-                error: 'Condition not found',
-                message: 'No condition found with the specified ID'
-            });
-        }
+    if (!condition) {
+      return res.status(404).json({
+        error: "Condition not found",
+        message: "No condition found with the specified ID",
+      });
+    }
 
-        // Get symptoms for this condition
-        const symptoms = await database.all(`
+    // Get symptoms for this condition
+    const symptoms = await database.all(
+      `
             SELECT 
                 s.id,
                 s.name,
@@ -68,31 +89,34 @@ router.get('/:id', async (req, res, next) => {
             JOIN Condition_Symptom_Map csm ON s.id = csm.symptom_id
             WHERE csm.condition_id = ?
             ORDER BY csm.relevance_score DESC, s.name
-        `, [conditionId]);
+        `,
+      [conditionId]
+    );
 
-        res.json({
-            ...condition,
-            symptoms
-        });
-    } catch (error) {
-        console.error('Error fetching condition details:', error);
-        next({ type: 'database', message: error.message });
-    }
+    res.json({
+      ...condition,
+      symptoms,
+    });
+  } catch (error) {
+    console.error("Error fetching condition details:", error);
+    next({ type: "database", message: error.message });
+  }
 });
 
 // GET /api/conditions/:id/interactions - Get condition-specific interaction adjustments
-router.get('/:id/interactions', async (req, res, next) => {
-    try {
-        const conditionId = parseInt(req.params.id);
-        
-        if (isNaN(conditionId)) {
-            return res.status(400).json({
-                error: 'Invalid condition ID',
-                message: 'Condition ID must be a number'
-            });
-        }
+router.get("/:id/interactions", async (req, res, next) => {
+  try {
+    const conditionId = parseInt(req.params.id);
 
-        const interactions = await database.all(`
+    if (isNaN(conditionId)) {
+      return res.status(400).json({
+        error: "Invalid condition ID",
+        message: "Condition ID must be a number",
+      });
+    }
+
+    const interactions = await database.all(
+      `
             SELECT 
                 ci.id,
                 ci.adjusted_severity_score,
@@ -109,17 +133,19 @@ router.get('/:id/interactions', async (req, res, next) => {
             JOIN Drug d2 ON i.drug2_id = d2.id
             WHERE ci.condition_id = ?
             ORDER BY ci.adjusted_severity_score DESC
-        `, [conditionId]);
+        `,
+      [conditionId]
+    );
 
-        res.json({
-            condition_id: conditionId,
-            interactions,
-            count: interactions.length
-        });
-    } catch (error) {
-        console.error('Error fetching condition interactions:', error);
-        next({ type: 'database', message: error.message });
-    }
+    res.json({
+      condition_id: conditionId,
+      interactions,
+      count: interactions.length,
+    });
+  } catch (error) {
+    console.error("Error fetching condition interactions:", error);
+    next({ type: "database", message: error.message });
+  }
 });
 
 module.exports = router;

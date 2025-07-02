@@ -1,80 +1,116 @@
-const express = require('express');
-const Joi = require('joi');
-const database = require('../database/connection');
+const express = require("express");
+const Joi = require("joi");
+const database = require("../database/connection");
 
 const router = express.Router();
 
 // Validation schemas
 const searchSchema = Joi.object({
-    query: Joi.string().min(1).max(100).required(),
-    limit: Joi.number().integer().min(1).max(50).default(20)
+  query: Joi.string().min(1).max(100).required(),
+  limit: Joi.number().integer().min(1).max(50).default(20),
 });
 
-// GET /api/drugs - Get all drugs with pagination
-router.get('/', async (req, res, next) => {
-    try {
-        const { page = 1, limit = 20 } = req.query;
-        const offset = (page - 1) * limit;
+/**
+ * @swagger
+ * tags:
+ *   name: Drugs
+ *   description: Drug management and search
+ */
 
-        const drugs = await database.all(`
+// GET /api/drugs - Get all drugs with pagination
+/**
+ * @swagger
+ * /api/drugs:
+ *   get:
+ *     summary: Get all drugs with pagination
+ *     tags: [Drugs]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Number of results per page
+ *     responses:
+ *       200:
+ *         description: List of drugs
+ */
+router.get("/", async (req, res, next) => {
+  try {
+    const page = Number.isInteger(Number(req.query.page))
+      ? Number(req.query.page)
+      : 1;
+    const limit = Number.isInteger(Number(req.query.limit))
+      ? Number(req.query.limit)
+      : 20;
+    const offset = (page - 1) * limit;
+
+    // Interpolate limit and offset directly into the SQL string
+    const sql = `
             SELECT 
                 d.id,
                 d.generic_name,
                 d.drug_class,
                 d.description,
                 GROUP_CONCAT(
-                    db.brand_name || ' (' || db.manufacturer || ')'
+                    CONCAT(db.brand_name, ' (', db.manufacturer, ')')
                 ) as brands
             FROM Drug d
             LEFT JOIN Drug_Brand db ON d.id = db.drug_id
             GROUP BY d.id, d.generic_name, d.drug_class, d.description
             ORDER BY d.generic_name
-            LIMIT ? OFFSET ?
-        `, [parseInt(limit), offset]);
+            LIMIT ${limit} OFFSET ${offset}
+        `;
+    const drugs = await database.all(sql);
 
-        const totalCount = await database.get('SELECT COUNT(*) as count FROM Drug');
+    const totalCount = await database.get("SELECT COUNT(*) as count FROM Drug");
 
-        res.json({
-            drugs: drugs.map(drug => ({
-                ...drug,
-                brands: drug.brands ? drug.brands.split(',') : []
-            })),
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total: totalCount.count,
-                pages: Math.ceil(totalCount.count / limit)
-            }
-        });
-    } catch (error) {
-        console.error('Error fetching drugs:', error);
-        next({ type: 'database', message: error.message });
-    }
+    res.json({
+      drugs: drugs.map((drug) => ({
+        ...drug,
+        brands: drug.brands ? drug.brands.split(",") : [],
+      })),
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: totalCount.count,
+        pages: Math.ceil(totalCount.count / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching drugs:", error);
+    next({ type: "database", message: error.message });
+  }
 });
 
 // GET /api/drugs/search - Search drugs by name (generic or brand)
-router.get('/search', async (req, res, next) => {
-    try {
-        const { error, value } = searchSchema.validate(req.query);
-        if (error) {
-            return next({
-                type: 'validation',
-                message: error.details[0].message,
-                details: error.details
-            });
-        }
+router.get("/search", async (req, res, next) => {
+  try {
+    const { error, value } = searchSchema.validate(req.query);
+    if (error) {
+      return next({
+        type: "validation",
+        message: error.details[0].message,
+        details: error.details,
+      });
+    }
 
-        const { query, limit } = value;
-        const searchTerm = `%${query.toLowerCase()}%`;
+    const { query, limit } = value;
+    const searchTerm = `%${query.toLowerCase()}%`;
 
-        const drugs = await database.all(`
+    const drugs = await database.all(
+      `
             SELECT DISTINCT
                 d.id,
                 d.generic_name,
                 d.drug_class,
                 d.description,
                 GROUP_CONCAT(
-                    DISTINCT db.brand_name || ' (' || db.manufacturer || ')'
+                    DISTINCT CONCAT(db.brand_name, ' (', db.manufacturer, ')')
                 ) as brands,
                 CASE 
                     WHEN LOWER(d.generic_name) LIKE ? THEN 1
@@ -92,35 +128,38 @@ router.get('/search', async (req, res, next) => {
             GROUP BY d.id, d.generic_name, d.drug_class, d.description
             ORDER BY relevance_score, d.generic_name
             LIMIT ?
-        `, [searchTerm, searchTerm, searchTerm, limit]);
+        `,
+      [searchTerm, searchTerm, searchTerm, limit]
+    );
 
-        res.json({
-            query,
-            results: drugs.map(drug => ({
-                ...drug,
-                brands: drug.brands ? drug.brands.split(',') : []
-            })),
-            count: drugs.length
-        });
-    } catch (error) {
-        console.error('Error searching drugs:', error);
-        next({ type: 'database', message: error.message });
-    }
+    res.json({
+      query,
+      results: drugs.map((drug) => ({
+        ...drug,
+        brands: drug.brands ? drug.brands.split(",") : [],
+      })),
+      count: drugs.length,
+    });
+  } catch (error) {
+    console.error("Error searching drugs:", error);
+    next({ type: "database", message: error.message });
+  }
 });
 
 // GET /api/drugs/:id - Get specific drug details
-router.get('/:id', async (req, res, next) => {
-    try {
-        const drugId = parseInt(req.params.id);
-        
-        if (isNaN(drugId)) {
-            return res.status(400).json({
-                error: 'Invalid drug ID',
-                message: 'Drug ID must be a number'
-            });
-        }
+router.get("/:id", async (req, res, next) => {
+  try {
+    const drugId = parseInt(req.params.id);
 
-        const drug = await database.get(`
+    if (isNaN(drugId)) {
+      return res.status(400).json({
+        error: "Invalid drug ID",
+        message: "Drug ID must be a number",
+      });
+    }
+
+    const drug = await database.get(
+      `
             SELECT 
                 d.id,
                 d.generic_name,
@@ -130,46 +169,52 @@ router.get('/:id', async (req, res, next) => {
                 d.updated_at
             FROM Drug d
             WHERE d.id = ?
-        `, [drugId]);
+        `,
+      [drugId]
+    );
 
-        if (!drug) {
-            return res.status(404).json({
-                error: 'Drug not found',
-                message: 'No drug found with the specified ID'
-            });
-        }
+    if (!drug) {
+      return res.status(404).json({
+        error: "Drug not found",
+        message: "No drug found with the specified ID",
+      });
+    }
 
-        // Get brands for this drug
-        const brands = await database.all(`
+    // Get brands for this drug
+    const brands = await database.all(
+      `
             SELECT brand_name, manufacturer, country
             FROM Drug_Brand
             WHERE drug_id = ?
             ORDER BY brand_name
-        `, [drugId]);
+        `,
+      [drugId]
+    );
 
-        res.json({
-            ...drug,
-            brands
-        });
-    } catch (error) {
-        console.error('Error fetching drug details:', error);
-        next({ type: 'database', message: error.message });
-    }
+    res.json({
+      ...drug,
+      brands,
+    });
+  } catch (error) {
+    console.error("Error fetching drug details:", error);
+    next({ type: "database", message: error.message });
+  }
 });
 
 // GET /api/drugs/:id/interactions - Get all interactions for a specific drug
-router.get('/:id/interactions', async (req, res, next) => {
-    try {
-        const drugId = parseInt(req.params.id);
-        
-        if (isNaN(drugId)) {
-            return res.status(400).json({
-                error: 'Invalid drug ID',
-                message: 'Drug ID must be a number'
-            });
-        }
+router.get("/:id/interactions", async (req, res, next) => {
+  try {
+    const drugId = parseInt(req.params.id);
 
-        const interactions = await database.all(`
+    if (isNaN(drugId)) {
+      return res.status(400).json({
+        error: "Invalid drug ID",
+        message: "Drug ID must be a number",
+      });
+    }
+
+    const interactions = await database.all(
+      `
             SELECT 
                 i.id,
                 i.interaction_type,
@@ -187,17 +232,19 @@ router.get('/:id/interactions', async (req, res, next) => {
             JOIN Drug d2 ON i.drug2_id = d2.id
             WHERE i.drug1_id = ? OR i.drug2_id = ?
             ORDER BY i.severity_score DESC, interacting_drug
-        `, [drugId, drugId, drugId]);
+        `,
+      [drugId, drugId, drugId]
+    );
 
-        res.json({
-            drug_id: drugId,
-            interactions,
-            count: interactions.length
-        });
-    } catch (error) {
-        console.error('Error fetching drug interactions:', error);
-        next({ type: 'database', message: error.message });
-    }
+    res.json({
+      drug_id: drugId,
+      interactions,
+      count: interactions.length,
+    });
+  } catch (error) {
+    console.error("Error fetching drug interactions:", error);
+    next({ type: "database", message: error.message });
+  }
 });
 
 module.exports = router;

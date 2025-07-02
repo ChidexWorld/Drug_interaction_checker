@@ -23,7 +23,7 @@ export interface Interaction {
   drug2_id: number;
   drug1_name: string;
   drug2_name: string;
-  interaction_type: 'Minor' | 'Moderate' | 'Major' | 'Contraindicated';
+  interaction_type: "Minor" | "Moderate" | "Major" | "Contraindicated";
   severity_score: 1 | 2 | 3 | 4;
   description: string;
   mechanism?: string;
@@ -34,7 +34,7 @@ export interface Interaction {
 }
 
 export interface ClinicalNote {
-  note_type: 'general' | 'monitoring' | 'contraindication';
+  note_type: "general" | "monitoring" | "contraindication";
   clinical_note: string;
   recommendation?: string;
 }
@@ -116,12 +116,16 @@ export interface InteractionCheckForm {
 
 // Utility types
 export type SeverityLevel = 1 | 2 | 3 | 4;
-export type InteractionType = 'Minor' | 'Moderate' | 'Major' | 'Contraindicated';
+export type InteractionType =
+  | "Minor"
+  | "Moderate"
+  | "Major"
+  | "Contraindicated";
 
 export interface ApiError {
   error: string;
   message: string;
-  details?: any;
+  details?: string;
 }
 
 // Component prop types

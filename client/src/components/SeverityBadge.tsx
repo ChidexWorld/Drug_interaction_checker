@@ -1,31 +1,27 @@
-import React from 'react';
-import { SeverityBadgeProps } from '../types';
+import React from "react";
+import type { SeverityBadgeProps } from "../types";
 
-const SeverityBadge: React.FC<SeverityBadgeProps> = ({ 
-  severity, 
-  type, 
-  className = '' 
+const SeverityBadge: React.FC<SeverityBadgeProps> = ({
+  severity,
+  type,
+  className = "",
 }) => {
   const getBadgeClasses = () => {
     switch (severity) {
       case 4:
-        return 'severity-contraindicated';
+        return "severity-contraindicated";
       case 3:
-        return 'severity-major';
+        return "severity-major";
       case 2:
-        return 'severity-moderate';
+        return "severity-moderate";
       case 1:
-        return 'severity-minor';
+        return "severity-minor";
       default:
-        return 'severity-minor';
+        return "severity-minor";
     }
   };
 
-  return (
-    <span className={`${getBadgeClasses()} ${className}`}>
-      {type}
-    </span>
-  );
+  return <span className={`${getBadgeClasses()} ${className}`}>{type}</span>;
 };
 
 export default SeverityBadge;

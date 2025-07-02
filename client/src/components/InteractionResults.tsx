@@ -1,12 +1,18 @@
-import React from 'react';
-import { AlertTriangle, Info, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
-import { InteractionResultsProps, Interaction } from '../types';
-import LoadingSpinner from './LoadingSpinner';
-import SeverityBadge from './SeverityBadge';
+import React from "react";
+import {
+  AlertTriangle,
+  Info,
+  CheckCircle,
+  XCircle,
+  ArrowRight,
+} from "lucide-react";
+import type { InteractionResultsProps, Interaction } from "../types";
+import LoadingSpinner from "./LoadingSpinner";
+import SeverityBadge from "./SeverityBadge";
 
 const InteractionResults: React.FC<InteractionResultsProps> = ({
   results,
-  loading
+  loading,
 }) => {
   if (loading) {
     return (
@@ -43,15 +49,15 @@ const InteractionResults: React.FC<InteractionResultsProps> = ({
   const getSummaryBgColor = () => {
     switch (summary.max_severity) {
       case 4:
-        return 'bg-red-50 border-red-200';
+        return "bg-red-50 border-red-200";
       case 3:
-        return 'bg-orange-50 border-orange-200';
+        return "bg-orange-50 border-orange-200";
       case 2:
-        return 'bg-yellow-50 border-yellow-200';
+        return "bg-yellow-50 border-yellow-200";
       case 1:
-        return 'bg-green-50 border-green-200';
+        return "bg-green-50 border-green-200";
       default:
-        return 'bg-green-50 border-green-200';
+        return "bg-green-50 border-green-200";
     }
   };
 
@@ -67,13 +73,16 @@ const InteractionResults: React.FC<InteractionResultsProps> = ({
             </h3>
             <div className="space-y-2">
               <p className="text-gray-700">
-                <span className="font-medium">Risk Level:</span>{' '}
-                <span className="font-semibold" style={{ color: summary.risk_color }}>
+                <span className="font-medium">Risk Level:</span>{" "}
+                <span
+                  className="font-semibold"
+                  style={{ color: summary.risk_color }}
+                >
                   {summary.risk_level}
                 </span>
               </p>
               <p className="text-gray-700">
-                <span className="font-medium">Total Interactions Found:</span>{' '}
+                <span className="font-medium">Total Interactions Found:</span>{" "}
                 {summary.total_interactions}
               </p>
               {summary.condition_considered && (
@@ -94,8 +103,9 @@ const InteractionResults: React.FC<InteractionResultsProps> = ({
             No Known Interactions
           </h3>
           <p className="text-gray-600">
-            The selected drugs do not have any known interactions in our database.
-            However, always consult with a healthcare professional before taking multiple medications.
+            The selected drugs do not have any known interactions in our
+            database. However, always consult with a healthcare professional
+            before taking multiple medications.
           </p>
         </div>
       )}
@@ -106,7 +116,7 @@ const InteractionResults: React.FC<InteractionResultsProps> = ({
           <h3 className="text-lg font-semibold text-gray-900">
             Detailed Interactions ({interactions.length})
           </h3>
-          
+
           {interactions
             .sort((a, b) => b.severity_score - a.severity_score)
             .map((interaction, index) => (
@@ -118,7 +128,9 @@ const InteractionResults: React.FC<InteractionResultsProps> = ({
   );
 };
 
-const InteractionCard: React.FC<{ interaction: Interaction }> = ({ interaction }) => {
+const InteractionCard: React.FC<{ interaction: Interaction }> = ({
+  interaction,
+}) => {
   return (
     <div className="card p-6">
       <div className="space-y-4">
@@ -143,14 +155,14 @@ const InteractionCard: React.FC<{ interaction: Interaction }> = ({ interaction }
         </div>
 
         {/* Description */}
-        <div className="text-gray-700">
-          {interaction.description}
-        </div>
+        <div className="text-gray-700">{interaction.description}</div>
 
         {/* Mechanism */}
         {interaction.mechanism && (
           <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="text-sm font-medium text-gray-900 mb-1">Mechanism:</div>
+            <div className="text-sm font-medium text-gray-900 mb-1">
+              Mechanism:
+            </div>
             <div className="text-sm text-gray-700">{interaction.mechanism}</div>
           </div>
         )}
@@ -158,52 +170,67 @@ const InteractionCard: React.FC<{ interaction: Interaction }> = ({ interaction }
         {/* Condition Note */}
         {interaction.condition_note && (
           <div className="bg-blue-50 p-3 rounded-lg">
-            <div className="text-sm font-medium text-blue-900 mb-1">Condition-Specific Note:</div>
-            <div className="text-sm text-blue-800">{interaction.condition_note}</div>
+            <div className="text-sm font-medium text-blue-900 mb-1">
+              Condition-Specific Note:
+            </div>
+            <div className="text-sm text-blue-800">
+              {interaction.condition_note}
+            </div>
           </div>
         )}
 
         {/* Clinical Notes */}
-        {interaction.clinical_notes && interaction.clinical_notes.length > 0 && (
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-gray-900">Clinical Notes:</div>
-            {interaction.clinical_notes.map((note, index) => (
-              <div key={index} className="bg-yellow-50 p-3 rounded-lg">
-                <div className="text-sm">
-                  <span className="font-medium text-yellow-900 capitalize">
-                    {note.note_type}:
-                  </span>{' '}
-                  <span className="text-yellow-800">{note.clinical_note}</span>
-                </div>
-                {note.recommendation && (
-                  <div className="text-sm text-yellow-700 mt-1">
-                    <span className="font-medium">Recommendation:</span> {note.recommendation}
-                  </div>
-                )}
+        {interaction.clinical_notes &&
+          interaction.clinical_notes.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-gray-900">
+                Clinical Notes:
               </div>
-            ))}
-          </div>
-        )}
+              {interaction.clinical_notes.map((note, index) => (
+                <div key={index} className="bg-yellow-50 p-3 rounded-lg">
+                  <div className="text-sm">
+                    <span className="font-medium text-yellow-900 capitalize">
+                      {note.note_type}:
+                    </span>{" "}
+                    <span className="text-yellow-800">
+                      {note.clinical_note}
+                    </span>
+                  </div>
+                  {note.recommendation && (
+                    <div className="text-sm text-yellow-700 mt-1">
+                      <span className="font-medium">Recommendation:</span>{" "}
+                      {note.recommendation}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
         {/* Alternatives */}
         {interaction.alternatives && interaction.alternatives.length > 0 && (
           <div className="space-y-2">
-            <div className="text-sm font-medium text-gray-900">Safer Alternatives:</div>
+            <div className="text-sm font-medium text-gray-900">
+              Safer Alternatives:
+            </div>
             <div className="space-y-2">
               {interaction.alternatives.map((alt, index) => (
                 <div key={index} className="bg-green-50 p-3 rounded-lg">
                   <div className="text-sm">
                     <span className="font-medium text-green-900">
                       {alt.alternative_name}
-                    </span>{' '}
-                    <span className="text-green-700">({alt.alternative_class})</span>
+                    </span>{" "}
+                    <span className="text-green-700">
+                      ({alt.alternative_class})
+                    </span>
                   </div>
                   <div className="text-sm text-green-700 mt-1">
                     <span className="font-medium">Reason:</span> {alt.reason}
                   </div>
                   {alt.safety_note && (
                     <div className="text-sm text-green-600 mt-1">
-                      <span className="font-medium">Safety Note:</span> {alt.safety_note}
+                      <span className="font-medium">Safety Note:</span>{" "}
+                      {alt.safety_note}
                     </div>
                   )}
                 </div>

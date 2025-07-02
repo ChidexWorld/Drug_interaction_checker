@@ -5,10 +5,29 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Production builds
+# Ignore all environment files in server and client
+/server/.env
+/server/.env.*
+/client/.env
+/client/.env.*
+
+# Ignore build output
 /client/dist/
 /client/build/
 /server/dist/
+
+# Ignore Docker artifacts
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Ignore database dumps/backups
+*.sql
+*.dump
+
+# Ignore coverage and test output
+/coverage/
+/coverage-*
 
 # Environment variables
 .env

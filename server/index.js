@@ -10,6 +10,7 @@ const drugRoutes = require("./routes/drugs");
 const interactionRoutes = require("./routes/interactions");
 const conditionRoutes = require("./routes/conditions");
 const symptomRoutes = require("./routes/symptoms");
+const swaggerJSDoc = require("swagger-jsdoc");
 // Swagger definition
 const swaggerDefinition = {
   openapi: "3.0.0",
@@ -31,12 +32,12 @@ const options = {
   apis: ["./routes/*.js"], // Path to the API docs
 };
 
-const swaggerSpec = swaggerJsdoc(options);
+const swaggerSpec = swaggerJSDoc(options);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 // Serve Swagger docs (after app is declared)
-// app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Security middleware
 app.use(helmet());

@@ -2,7 +2,6 @@
   "name": "precious-drug-interaction-checker",
   "version": "1.0.0",
   "description": "Condition-Aware Drug Interaction Checker with Real-Time Clinical Alerts",
-  "main": "server/index.js",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd server && npm run dev",
@@ -25,10 +24,5 @@
     "concurrently": "^8.2.2",
     "vite": "^7.0.0"
   },
-  "dependencies": {
-    "express": "^4.18.0",
-    "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "dotenv": "^17.0.0"
-  }
+  "dependencies": {}
 }

@@ -3,14 +3,13 @@ const cors = require("cors");
 const helmet = require("helmet");
 require("dotenv").config();
 
-// Swagger setup
-
 const database = require("./database/connection");
 const drugRoutes = require("./routes/drugs");
 const interactionRoutes = require("./routes/interactions");
 const conditionRoutes = require("./routes/conditions");
 const symptomRoutes = require("./routes/symptoms");
 const swaggerJSDoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
 // Swagger definition
 const swaggerDefinition = {
   openapi: "3.0.0",

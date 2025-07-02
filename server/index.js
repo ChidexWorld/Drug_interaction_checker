@@ -4,8 +4,6 @@ const helmet = require("helmet");
 require("dotenv").config();
 
 // Swagger setup
-const swaggerJsdoc = require("swagger-jsdoc");
-const swaggerUi = require("swagger-ui-express");
 
 const database = require("./database/connection");
 const drugRoutes = require("./routes/drugs");
@@ -38,7 +36,7 @@ const swaggerSpec = swaggerJsdoc(options);
 const app = express();
 const PORT = process.env.PORT || 5000;
 // Serve Swagger docs (after app is declared)
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Security middleware
 app.use(helmet());

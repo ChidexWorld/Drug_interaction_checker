@@ -20,6 +20,237 @@ const drugInteractionCheckSchema = Joi.object({
 
 /**
  * @swagger
+ * /api/drug-checker/search-drugs:
+ *   get:
+ *     summary: Search for drugs by name
+ *     tags: [DrugInteractionChecker]
+ *     parameters:
+ *       - in: query
+ *         name: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Drug name to search for
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *         description: Maximum number of results
+ *     responses:
+ *       200:
+ *         description: List of matching drugs
+ */
+router.get("/search-drugs", async (req, res, next) => {
+  try {
+    const { query, limit = 20 } = req.query;
+    
+    if (!query || query.length < 2) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: "Query must be at least 2 characters long"
+      });
+    }
+
+    const results = await searchDrug(query);
+    const limitedResults = results.slice(0, parseInt(limit));
+    
+    // Get detailed information for each drug
+    const drugsWithDetails = await Promise.all(
+      limitedResults.map(async (drug) => {
+        const details = await getDrugDetails(drug.id);
+        return details;
+      })
+    );
+
+    res.json({
+      query,
+      results: drugsWithDetails,
+      total: drugsWithDetails.length
+    });
+
+  } catch (error) {
+    console.error("Error searching drugs:", error);
+    next({ type: "database", message: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/drug-checker/drug-details:
+ *   get:
+ *     summary: Get detailed information for a drug by name
+ *     tags: [DrugInteractionChecker]
+ *     parameters:
+ *       - in: query
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Drug name (generic or brand name)
+ *     responses:
+ *       200:
+ *         description: Drug details
+ *       404:
+ *         description: Drug not found
+ */
+router.get("/drug-details", async (req, res, next) => {
+  try {
+    const { name } = req.query;
+    
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: "Drug name is required"
+      });
+    }
+
+    const drugResults = await searchDrug(name.trim());
+    
+    if (drugResults.length === 0) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `No drug found matching "${name}"`
+      });
+    }
+
+    // Get the best match (first result)
+    const selectedDrug = drugResults[0];
+    const drugDetails = await getDrugDetails(selectedDrug.id);
+    
+    if (!drugDetails) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: "Drug details not found"
+      });
+    }
+
+    res.json({
+      search_term: name,
+      drug: drugDetails,
+      match_quality: selectedDrug.relevance_score === 1 ? "exact" : "partial"
+    });
+
+  } catch (error) {
+    console.error("Error getting drug details:", error);
+    next({ type: "database", message: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/drug-checker/conditions:
+ *   get:
+ *     summary: Get list of all medical conditions
+ *     tags: [DrugInteractionChecker]
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Optional search term to filter conditions
+ *     responses:
+ *       200:
+ *         description: List of conditions
+ */
+router.get("/conditions", async (req, res, next) => {
+  try {
+    const { search } = req.query;
+    
+    let query = `
+      SELECT 
+        id,
+        name,
+        description
+      FROM \`Condition\`
+    `;
+    
+    let params = [];
+    
+    if (search && search.trim().length > 0) {
+      query += ` WHERE name LIKE ? OR description LIKE ?`;
+      const searchTerm = `%${search.trim()}%`;
+      params = [searchTerm, searchTerm];
+    }
+    
+    query += ` ORDER BY name`;
+    
+    const conditions = await database.all(query, params);
+    
+    res.json({
+      search_term: search || null,
+      conditions,
+      total: conditions.length
+    });
+
+  } catch (error) {
+    console.error("Error getting conditions:", error);
+    next({ type: "database", message: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/drug-checker/condition-details:
+ *   get:
+ *     summary: Get detailed information for a specific condition
+ *     tags: [DrugInteractionChecker]
+ *     parameters:
+ *       - in: query
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Condition name
+ *     responses:
+ *       200:
+ *         description: Condition details
+ *       404:
+ *         description: Condition not found
+ */
+router.get("/condition-details", async (req, res, next) => {
+  try {
+    const { name } = req.query;
+    
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({
+        error: "Validation Error",
+        message: "Condition name is required"
+      });
+    }
+
+    const condition = await database.get(
+      `
+      SELECT 
+        id,
+        name,
+        description
+      FROM \`Condition\`
+      WHERE name = ?
+      `,
+      [name.trim()]
+    );
+    
+    if (!condition) {
+      return res.status(404).json({
+        error: "Not Found",
+        message: `No condition found matching "${name}"`
+      });
+    }
+
+    res.json({
+      search_term: name,
+      condition
+    });
+
+  } catch (error) {
+    console.error("Error getting condition details:", error);
+    next({ type: "database", message: error.message });
+  }
+});
+
+/**
+ * @swagger
  * /api/drug-checker/search-and-check:
  *   post:
  *     summary: Search for 2 drugs and check their interactions with complete details
@@ -195,7 +426,7 @@ async function getDrugDetails(drugId) {
 
   if (!drug) return null;
 
-  // Get brands for this drug
+  // Get brands for this drug - maintain exact pairing from database rows
   const brandsData = await database.all(
     `
     SELECT DISTINCT brand_name, manufacturer
@@ -206,16 +437,17 @@ async function getDrugDetails(drugId) {
     [drugId]
   );
 
-  // Structure the response properly - extract unique brands and manufacturers
-  const uniqueBrands = [...new Set(brandsData.map(b => b.brand_name))];
-  const uniqueManufacturers = [...new Set(brandsData.map(b => b.manufacturer))];
+  // Extract brands and manufacturers arrays that correspond by index (no duplicates)
+  const brands = brandsData.map(b => b.brand_name);
+  const manufacturers = brandsData.map(b => b.manufacturer);
 
   return {
     ...drug,
-    brands: uniqueBrands,
-    manufacturers: uniqueManufacturers,
+    brands: brands,
+    manufacturers: manufacturers,
   };
 }
+
 
 /**
  * Check for interaction between two drugs

@@ -7,22 +7,16 @@ const Header: React.FC = () => {
 
   const navigation = [
     {
-      name: "Interaction Checker",
+      name: "Drug Information",
       href: "/",
-      icon: Shield,
-      description: "Check drug interactions",
-    },
-    {
-      name: "Drug Database",
-      href: "/drugs",
       icon: Database,
-      description: "Browse drug information",
+      description: "Search drug information",
     },
     {
-      name: "Conditions & Symptoms",
+      name: "Medical Conditions",
       href: "/conditions",
       icon: Stethoscope,
-      description: "Medical conditions and symptoms",
+      description: "Browse medical conditions",
     },
   ];
 
@@ -42,7 +36,7 @@ const Header: React.FC = () => {
                 Precious
               </h1>
               <p className="text-xs md:text-sm text-gray-500 font-medium tracking-wide">
-                Drug Interaction Checker
+                Medical Information System
               </p>
             </div>
           </div>

@@ -3,11 +3,6 @@ import type {
   Drug,
   DrugSearchResponse,
   InteractionCheckResponse,
-  ConditionsResponse,
-  SymptomsResponse,
-  SuggestConditionsResponse,
-  Condition,
-  Symptom,
 } from "../types/index";
 
 const API_BASE_URL =
@@ -44,104 +39,61 @@ api.interceptors.response.use(
   }
 );
 
-// Drug API endpoints
+// Drug checker API - simplified to get drug details by name
 export const drugAPI = {
-  // Search drugs by name (generic or brand)
+  // Search drugs by name
   searchDrugs: async (
     query: string,
     limit: number = 20
   ): Promise<DrugSearchResponse> => {
-    const response = await api.get("/drugs/search", {
+    const response = await api.get("/drug-checker/search-drugs", {
       params: { query, limit },
     });
     return response.data;
   },
 
-  // Get all drugs with pagination
-  getAllDrugs: async (page: number = 1, limit: number = 20) => {
-    const response = await api.get("/drugs", {
-      params: { page, limit },
-    });
-    return response.data;
-  },
-
-  // Get specific drug details
-  getDrugById: async (id: number): Promise<Drug> => {
-    const response = await api.get(`/drugs/${id}`);
-    return response.data;
-  },
-
-  // Get drug interactions
-  getDrugInteractions: async (id: number) => {
-    const response = await api.get(`/drugs/${id}/interactions`);
-    return response.data;
-  },
-};
-
-// Interaction API endpoints
-export const interactionAPI = {
-  // Check interactions between multiple drugs
-  checkInteractions: async (
-    drugIds: number[],
-    conditionId?: number
-  ): Promise<InteractionCheckResponse> => {
-    const response = await api.post("/interactions/check", {
-      drug_ids: drugIds,
-      condition_id: conditionId,
+  // Get drug details by name
+  getDrugDetailsByName: async (name: string): Promise<{
+    search_term: string;
+    drug: Drug;
+    match_quality: string;
+  }> => {
+    const response = await api.get("/drug-checker/drug-details", {
+      params: { name },
     });
     return response.data;
   },
 };
 
-// Condition API endpoints
-export const conditionAPI = {
-  // Get all conditions
-  getAllConditions: async (): Promise<ConditionsResponse> => {
-    const response = await api.get("/conditions");
-    return response.data;
-  },
-
-  // Get specific condition details
-  getConditionById: async (id: number): Promise<Condition> => {
-    const response = await api.get(`/conditions/${id}`);
-    return response.data;
-  },
-
-  // Get condition-specific interactions
-  getConditionInteractions: async (id: number) => {
-    const response = await api.get(`/conditions/${id}/interactions`);
-    return response.data;
-  },
-};
-
-// Symptom API endpoints
-export const symptomAPI = {
-  // Get all symptoms
-  getAllSymptoms: async (): Promise<SymptomsResponse> => {
-    const response = await api.get("/symptoms");
-    return response.data;
-  },
-
-  // Search symptoms
-  searchSymptoms: async (query: string, limit: number = 20) => {
-    const response = await api.get("/symptoms/search", {
-      params: { query, limit },
+// Conditions API
+export const conditionsAPI = {
+  // Get all conditions with optional search
+  getAllConditions: async (search?: string): Promise<{
+    search_term: string | null;
+    conditions: Array<{
+      id: number;
+      name: string;
+      description: string;
+    }>;
+    total: number;
+  }> => {
+    const response = await api.get("/drug-checker/conditions", {
+      params: search ? { search } : {},
     });
     return response.data;
   },
 
-  // Get specific symptom details
-  getSymptomById: async (id: number): Promise<Symptom> => {
-    const response = await api.get(`/symptoms/${id}`);
-    return response.data;
-  },
-
-  // Suggest conditions based on symptoms
-  suggestConditions: async (
-    symptomIds: number[]
-  ): Promise<SuggestConditionsResponse> => {
-    const response = await api.post("/symptoms/suggest-conditions", {
-      symptom_ids: symptomIds,
+  // Get condition details by name
+  getConditionDetailsByName: async (name: string): Promise<{
+    search_term: string;
+    condition: {
+      id: number;
+      name: string;
+      description: string;
+    };
+  }> => {
+    const response = await api.get("/drug-checker/condition-details", {
+      params: { name },
     });
     return response.data;
   },

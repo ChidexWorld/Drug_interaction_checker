@@ -8,6 +8,7 @@ const drugRoutes = require("./routes/drugs");
 const interactionRoutes = require("./routes/interactions");
 const conditionRoutes = require("./routes/conditions");
 const symptomRoutes = require("./routes/symptoms");
+const drugInteractionCheckerRoutes = require("./routes/drugInteractionChecker");
 const swaggerJSDoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 // Swagger definition
@@ -69,6 +70,7 @@ app.use("/api/drugs", drugRoutes);
 app.use("/api/interactions", interactionRoutes);
 app.use("/api/conditions", conditionRoutes);
 app.use("/api/symptoms", symptomRoutes);
+app.use("/api/drug-checker", drugInteractionCheckerRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

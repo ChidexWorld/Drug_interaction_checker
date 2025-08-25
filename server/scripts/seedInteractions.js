@@ -1,275 +1,98 @@
 const database = require("../database/connection");
 
-// Sample interaction data
+// Import data from organized data folder
+const drugs = require('../data/drugs');
+const conditions = require('../data/conditions');
+const symptoms = require('../data/symptoms');
+const interactions = require('../data/interactions');
+const clinicalNotes = require('../data/clinicalNotes');
+const alternativeDrugs = require('../data/alternativeDrugs');
+const symptomToCondition = require('../data/symptomToCondition');
+const conditionInteraction = require('../data/conditionInteraction');
+
+// Create a drug name lookup for the interactions
+const drugNameLookup = {};
+drugs.forEach(drug => {
+  drugNameLookup[drug.id] = drug.generic_name;
+});
+
+// Create condition name lookup
+const conditionNameLookup = {};
+conditions.forEach(condition => {
+  conditionNameLookup[condition.id] = condition.name;
+});
+
+// Create symptom name lookup
+const symptomNameLookup = {};
+symptoms.forEach(symptom => {
+  symptomNameLookup[symptom.id] = symptom.name;
+});
+
+// Transform our data to match the expected format
 const interactionData = {
-  interactions: [
-    {
-      drug1_name: "Warfarin",
-      drug2_name: "Aspirin",
-      interaction_type: "Major",
-      severity_score: 3,
-      description:
-        "Increased risk of bleeding when warfarin is combined with aspirin. Both drugs affect blood clotting.",
-      mechanism:
-        "Additive anticoagulant effects - warfarin inhibits vitamin K synthesis while aspirin inhibits platelet aggregation",
-    },
-    {
-      drug1_name: "Lisinopril",
-      drug2_name: "Furosemide",
-      interaction_type: "Moderate",
-      severity_score: 2,
-      description:
-        "May cause excessive drop in blood pressure and kidney function impairment.",
-      mechanism:
-        "ACE inhibitors and diuretics both lower blood pressure through different mechanisms",
-    },
-    {
-      drug1_name: "Digoxin",
-      drug2_name: "Furosemide",
-      interaction_type: "Major",
-      severity_score: 3,
-      description:
-        "Furosemide can cause potassium loss, increasing risk of digoxin toxicity.",
-      mechanism:
-        "Hypokalemia caused by furosemide increases sensitivity to digoxin",
-    },
-    {
-      drug1_name: "Simvastatin",
-      drug2_name: "Warfarin",
-      interaction_type: "Moderate",
-      severity_score: 2,
-      description:
-        "Simvastatin may enhance the anticoagulant effect of warfarin.",
-      mechanism:
-        "Simvastatin may inhibit warfarin metabolism, increasing its effects",
-    },
-    {
-      drug1_name: "Metformin",
-      drug2_name: "Furosemide",
-      interaction_type: "Minor",
-      severity_score: 1,
-      description:
-        "Furosemide may affect blood glucose levels in diabetic patients.",
-      mechanism:
-        "Diuretics can cause hyperglycemia and may reduce metformin effectiveness",
-    },
-    {
-      drug1_name: "Atenolol",
-      drug2_name: "Amlodipine",
-      interaction_type: "Minor",
-      severity_score: 1,
-      description:
-        "Additive blood pressure lowering effects. Generally well tolerated.",
-      mechanism:
-        "Both drugs lower blood pressure through different mechanisms - often used together therapeutically",
-    },
-    {
-      drug1_name: "Omeprazole",
-      drug2_name: "Warfarin",
-      interaction_type: "Moderate",
-      severity_score: 2,
-      description: "Omeprazole may increase warfarin levels and bleeding risk.",
-      mechanism:
-        "Omeprazole inhibits CYP2C19 enzyme which metabolizes warfarin",
-    },
-    {
-      drug1_name: "Aspirin",
-      drug2_name: "Lisinopril",
-      interaction_type: "Moderate",
-      severity_score: 2,
-      description:
-        "NSAIDs like aspirin may reduce the effectiveness of ACE inhibitors.",
-      mechanism:
-        "NSAIDs can reduce kidney function and interfere with ACE inhibitor effectiveness",
-    },
-  ],
+  interactions: interactions.map(interaction => ({
+    drug1_name: drugNameLookup[interaction.drug1_id],
+    drug2_name: drugNameLookup[interaction.drug2_id],
+    interaction_type: interaction.interaction_type,
+    severity_score: interaction.severity_score,
+    description: interaction.interaction_description,
+    mechanism: interaction.interaction_description // Use same as description for now
+  })),
 
-  clinicalNotes: [
-    {
-      drug1_name: "Warfarin",
-      drug2_name: "Aspirin",
-      notes: [
-        {
-          note_type: "monitoring",
-          clinical_note:
-            "Monitor INR more frequently when starting or stopping aspirin",
-          recommendation: "Check INR within 3-5 days of aspirin initiation",
-        },
-        {
-          note_type: "contraindication",
-          clinical_note:
-            "Avoid combination in patients with history of GI bleeding",
-          recommendation:
-            "Consider alternative antiplatelet agents or gastroprotection",
-        },
-      ],
-    },
-    {
-      drug1_name: "Digoxin",
-      drug2_name: "Furosemide",
-      notes: [
-        {
-          note_type: "monitoring",
-          clinical_note: "Monitor serum potassium and digoxin levels regularly",
-          recommendation: "Check electrolytes weekly initially, then monthly",
-        },
-        {
+  clinicalNotes: clinicalNotes.map(note => {
+    // Find the corresponding interaction
+    const interaction = interactions.find(int => int.clinical_note_id === note.clinical_note_id);
+    if (interaction) {
+      return {
+        drug1_name: drugNameLookup[interaction.drug1_id],
+        drug2_name: drugNameLookup[interaction.drug2_id],
+        notes: [{
           note_type: "general",
-          clinical_note:
-            "Consider potassium supplementation or potassium-sparing diuretic",
-          recommendation: "Maintain serum potassium >3.5 mEq/L",
-        },
-      ],
-    },
-  ],
+          clinical_note: note.clinical_note,
+          recommendation: "Monitor closely and follow clinical guidance"
+        }]
+      };
+    }
+    return null;
+  }).filter(Boolean),
 
-  conditionInteractions: [
-    {
-      drug1_name: "Warfarin",
-      drug2_name: "Aspirin",
-      condition_name: "Kidney Disease",
-      adjusted_severity_score: 4,
-      adjusted_interaction_type: "Contraindicated",
-      condition_specific_note:
-        "Kidney disease increases bleeding risk significantly with this combination",
-    },
-    {
-      drug1_name: "Lisinopril",
-      drug2_name: "Furosemide",
-      condition_name: "Heart Failure",
-      adjusted_severity_score: 1,
-      adjusted_interaction_type: "Minor",
-      condition_specific_note:
-        "This combination is often beneficial in heart failure patients when properly monitored",
-    },
-    {
-      drug1_name: "Digoxin",
-      drug2_name: "Furosemide",
-      condition_name: "Elderly (65+)",
-      adjusted_severity_score: 4,
-      adjusted_interaction_type: "Contraindicated",
-      condition_specific_note:
-        "Elderly patients are at higher risk of digoxin toxicity due to reduced kidney function",
-    },
-  ],
+  conditionInteractions: conditionInteraction.map(condInt => {
+    const interaction = interactions.find(int => int.id === condInt.interaction_id);
+    if (interaction) {
+      return {
+        drug1_name: drugNameLookup[interaction.drug1_id],
+        drug2_name: drugNameLookup[interaction.drug2_id],
+        condition_name: conditionNameLookup[condInt.condition_id],
+        adjusted_severity_score: condInt.severity_score,
+        adjusted_interaction_type: condInt.adjusted_interaction_type,
+        condition_specific_note: `${condInt.adjusted_interaction_type} interaction in ${conditionNameLookup[condInt.condition_id]} patients`
+      };
+    }
+    return null;
+  }).filter(Boolean),
 
-  alternatives: [
-    {
-      drug1_name: "Warfarin",
-      drug2_name: "Aspirin",
-      original_drug_name: "Aspirin",
-      alternative_name: "Clopidogrel",
-      reason:
-        "Lower bleeding risk compared to aspirin when combined with warfarin",
-      safety_note: "Still requires monitoring but generally safer combination",
-    },
-    {
-      drug1_name: "Digoxin",
-      drug2_name: "Furosemide",
-      original_drug_name: "Furosemide",
-      alternative_name: "Atenolol",
-      reason:
-        "Beta-blockers can provide heart rate control without electrolyte disturbances",
-      safety_note: "Monitor for bradycardia and heart failure symptoms",
-    },
-  ],
+  alternatives: alternativeDrugs.map(alt => {
+    const originalDrug = drugs.find(drug => drug.id === alt.replaced_drug_id);
+    const alternativeDrug = drugs.find(drug => drug.id === alt.alternative_drug_id);
+    
+    if (originalDrug && alternativeDrug) {
+      return {
+        drug1_name: originalDrug.generic_name,
+        drug2_name: alternativeDrug.generic_name,
+        original_drug_name: originalDrug.generic_name,
+        alternative_name: alternativeDrug.generic_name,
+        reason: `${alternativeDrug.generic_name} may be a safer alternative to ${originalDrug.generic_name}`,
+        safety_note: "Monitor for effectiveness and adverse effects"
+      };
+    }
+    return null;
+  }).filter(Boolean),
 
-  conditionSymptomMaps: [
-    {
-      condition_name: "Hypertension",
-      symptom_name: "Headache",
-      relevance_score: 2,
-    },
-    {
-      condition_name: "Hypertension",
-      symptom_name: "Dizziness",
-      relevance_score: 3,
-    },
-    {
-      condition_name: "Hypertension",
-      symptom_name: "Chest Pain",
-      relevance_score: 2,
-    },
-
-    {
-      condition_name: "Diabetes",
-      symptom_name: "Frequent Urination",
-      relevance_score: 3,
-    },
-    {
-      condition_name: "Diabetes",
-      symptom_name: "Excessive Thirst",
-      relevance_score: 3,
-    },
-    { condition_name: "Diabetes", symptom_name: "Fatigue", relevance_score: 2 },
-
-    {
-      condition_name: "Heart Failure",
-      symptom_name: "Shortness of Breath",
-      relevance_score: 3,
-    },
-    {
-      condition_name: "Heart Failure",
-      symptom_name: "Swelling",
-      relevance_score: 3,
-    },
-    {
-      condition_name: "Heart Failure",
-      symptom_name: "Fatigue",
-      relevance_score: 3,
-    },
-    {
-      condition_name: "Heart Failure",
-      symptom_name: "Irregular Heartbeat",
-      relevance_score: 2,
-    },
-
-    {
-      condition_name: "Kidney Disease",
-      symptom_name: "Swelling",
-      relevance_score: 3,
-    },
-    {
-      condition_name: "Kidney Disease",
-      symptom_name: "Fatigue",
-      relevance_score: 2,
-    },
-    {
-      condition_name: "Kidney Disease",
-      symptom_name: "Frequent Urination",
-      relevance_score: 2,
-    },
-
-    { condition_name: "Asthma", symptom_name: "Wheezing", relevance_score: 3 },
-    {
-      condition_name: "Asthma",
-      symptom_name: "Shortness of Breath",
-      relevance_score: 3,
-    },
-    { condition_name: "Asthma", symptom_name: "Cough", relevance_score: 3 },
-
-    {
-      condition_name: "Bleeding Disorder",
-      symptom_name: "Easy Bruising",
-      relevance_score: 3,
-    },
-    {
-      condition_name: "Bleeding Disorder",
-      symptom_name: "Excessive Bleeding",
-      relevance_score: 3,
-    },
-
-    {
-      condition_name: "Gastric Ulcer",
-      symptom_name: "Stomach Pain",
-      relevance_score: 3,
-    },
-    {
-      condition_name: "Gastric Ulcer",
-      symptom_name: "Nausea",
-      relevance_score: 2,
-    },
-  ],
+  conditionSymptomMaps: symptomToCondition.map(mapping => ({
+    condition_name: conditionNameLookup[mapping.condition_id],
+    symptom_name: symptomNameLookup[mapping.symptom_id],
+    relevance_score: 3 // Default relevance score
+  })),
 };
 
 async function seedInteractions() {
@@ -365,7 +188,7 @@ async function seedInteractions() {
         [condInt.drug2_name]
       );
       const condition = await database.get(
-        "SELECT id FROM Condition WHERE name = ?",
+        "SELECT id FROM `Condition` WHERE name = ?",
         [condInt.condition_name]
       );
 
@@ -401,7 +224,7 @@ async function seedInteractions() {
     console.log("Inserting condition-symptom mappings...");
     for (const mapping of interactionData.conditionSymptomMaps) {
       const condition = await database.get(
-        "SELECT id FROM Condition WHERE name = ?",
+        "SELECT id FROM `Condition` WHERE name = ?",
         [mapping.condition_name]
       );
       const symptom = await database.get(

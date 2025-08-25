@@ -1,194 +1,39 @@
 const database = require("../database/connection");
 
-// Sample data for seeding the database
+// Import data from organized data folder
+const drugs = require('../data/drugs');
+const conditions = require('../data/conditions');
+const symptoms = require('../data/symptoms');
+
+// Create drug brands data from drugs data
+const drugBrands = [];
+drugs.forEach(drug => {
+  drug.brands.forEach((brand, index) => {
+    drugBrands.push({
+      drug_name: drug.generic_name,
+      brand_name: brand,
+      manufacturer: drug.manufacturers[index] || drug.manufacturers[0]
+    });
+  });
+});
+
+// Transform data to match seeding format
 const sampleData = {
-  drugs: [
-    {
-      generic_name: "Lisinopril",
-      drug_class: "ACE Inhibitor",
-      description: "Used to treat high blood pressure and heart failure",
-    },
-    {
-      generic_name: "Warfarin",
-      drug_class: "Anticoagulant",
-      description: "Blood thinner to prevent clots",
-    },
-    {
-      generic_name: "Aspirin",
-      drug_class: "NSAID",
-      description: "Pain reliever and blood thinner",
-    },
-    {
-      generic_name: "Metformin",
-      drug_class: "Antidiabetic",
-      description: "Used to treat type 2 diabetes",
-    },
-    {
-      generic_name: "Simvastatin",
-      drug_class: "Statin",
-      description: "Cholesterol-lowering medication",
-    },
-    {
-      generic_name: "Amlodipine",
-      drug_class: "Calcium Channel Blocker",
-      description: "Used to treat high blood pressure",
-    },
-    {
-      generic_name: "Omeprazole",
-      drug_class: "Proton Pump Inhibitor",
-      description: "Reduces stomach acid production",
-    },
-    {
-      generic_name: "Atenolol",
-      drug_class: "Beta Blocker",
-      description: "Used to treat high blood pressure and heart conditions",
-    },
-    {
-      generic_name: "Furosemide",
-      drug_class: "Diuretic",
-      description: "Water pill used to treat fluid retention",
-    },
-    {
-      generic_name: "Digoxin",
-      drug_class: "Cardiac Glycoside",
-      description: "Used to treat heart failure and irregular heartbeat",
-    },
-  ],
-
-  drugBrands: [
-    {
-      drug_name: "Lisinopril",
-      brand_name: "Zestril",
-      manufacturer: "AstraZeneca Nigeria",
-    },
-    {
-      drug_name: "Lisinopril",
-      brand_name: "Prinivil",
-      manufacturer: "Merck Nigeria",
-    },
-    {
-      drug_name: "Warfarin",
-      brand_name: "Coumadin",
-      manufacturer: "Bristol-Myers Squibb Nigeria",
-    },
-    {
-      drug_name: "Aspirin",
-      brand_name: "Aspirin",
-      manufacturer: "Bayer Nigeria",
-    },
-    {
-      drug_name: "Aspirin",
-      brand_name: "Ecotrin",
-      manufacturer: "GlaxoSmithKline Nigeria",
-    },
-    {
-      drug_name: "Metformin",
-      brand_name: "Glucophage",
-      manufacturer: "Merck Nigeria",
-    },
-    {
-      drug_name: "Simvastatin",
-      brand_name: "Zocor",
-      manufacturer: "Merck Nigeria",
-    },
-    {
-      drug_name: "Amlodipine",
-      brand_name: "Norvasc",
-      manufacturer: "Pfizer Nigeria",
-    },
-    {
-      drug_name: "Omeprazole",
-      brand_name: "Prilosec",
-      manufacturer: "AstraZeneca Nigeria",
-    },
-    {
-      drug_name: "Atenolol",
-      brand_name: "Tenormin",
-      manufacturer: "AstraZeneca Nigeria",
-    },
-    {
-      drug_name: "Furosemide",
-      brand_name: "Lasix",
-      manufacturer: "Sanofi Nigeria",
-    },
-    {
-      drug_name: "Digoxin",
-      brand_name: "Lanoxin",
-      manufacturer: "GlaxoSmithKline Nigeria",
-    },
-  ],
-
-  conditions: [
-    {
-      name: "Hypertension",
-      description: "High blood pressure",
-      severity_level: 2,
-    },
-    {
-      name: "Diabetes",
-      description: "High blood sugar levels",
-      severity_level: 2,
-    },
-    {
-      name: "Heart Failure",
-      description: "Heart cannot pump blood effectively",
-      severity_level: 3,
-    },
-    {
-      name: "Kidney Disease",
-      description: "Impaired kidney function",
-      severity_level: 3,
-    },
-    {
-      name: "Liver Disease",
-      description: "Impaired liver function",
-      severity_level: 3,
-    },
-    {
-      name: "Asthma",
-      description: "Respiratory condition causing breathing difficulties",
-      severity_level: 2,
-    },
-    { name: "Pregnancy", description: "Expecting a baby", severity_level: 3 },
-    {
-      name: "Elderly (65+)",
-      description: "Advanced age requiring special consideration",
-      severity_level: 2,
-    },
-    {
-      name: "Bleeding Disorder",
-      description: "Increased risk of bleeding",
-      severity_level: 3,
-    },
-    { name: "Gastric Ulcer", description: "Stomach ulcer", severity_level: 2 },
-  ],
-
-  symptoms: [
-    { name: "Chest Pain", description: "Pain or discomfort in chest area" },
-    { name: "Shortness of Breath", description: "Difficulty breathing" },
-    { name: "Dizziness", description: "Feeling lightheaded or unsteady" },
-    { name: "Fatigue", description: "Extreme tiredness" },
-    {
-      name: "Swelling",
-      description: "Fluid retention in legs, ankles, or feet",
-    },
-    {
-      name: "Frequent Urination",
-      description: "Urinating more often than normal",
-    },
-    { name: "Excessive Thirst", description: "Increased need to drink fluids" },
-    { name: "Wheezing", description: "High-pitched breathing sound" },
-    { name: "Cough", description: "Persistent coughing" },
-    { name: "Nausea", description: "Feeling sick to stomach" },
-    { name: "Stomach Pain", description: "Abdominal discomfort" },
-    { name: "Headache", description: "Head pain" },
-    { name: "Irregular Heartbeat", description: "Heart rhythm abnormalities" },
-    { name: "Easy Bruising", description: "Bruising with minimal trauma" },
-    {
-      name: "Excessive Bleeding",
-      description: "Bleeding that is hard to stop",
-    },
-  ],
+  drugs: drugs.map(drug => ({
+    generic_name: drug.generic_name,
+    drug_class: drug.drug_class,
+    description: `${drug.drug_class} medication` // Simple description
+  })),
+  
+  drugBrands: drugBrands,
+  
+  conditions: conditions.map(condition => ({
+    name: condition.name,
+    description: condition.description.split('\n')[0], // Use first line of description
+    severity_level: 2 // Default severity level
+  })),
+  
+  symptoms: symptoms
 };
 
 async function seedDatabase() {
@@ -234,7 +79,7 @@ async function seedDatabase() {
     for (const symptom of sampleData.symptoms) {
       await database.run(
         "INSERT IGNORE INTO Symptom (name, description) VALUES (?, ?)",
-        [symptom.name, symptom.description]
+        [symptom.name, symptom.description || null]
       );
     }
 

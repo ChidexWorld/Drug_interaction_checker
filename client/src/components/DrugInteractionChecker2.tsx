@@ -76,17 +76,35 @@ const DrugInteractionChecker2: React.FC = () => {
 
       if (response.interaction.exists) {
         const severity = response.interaction.severity_score || 0;
+        const drug1Name = response.drugs.drug1.generic_name;
+        const drug2Name = response.drugs.drug2.generic_name;
+        
         if (severity >= 4) {
-          toast.error(`Contraindicated interaction found!`);
+          toast.error(`⚠️ CONTRAINDICATED: ${drug1Name} and ${drug2Name} should not be taken together! This combination is dangerous and could cause serious harm.`, {
+            autoClose: 8000,
+            toastId: 'contraindicated'
+          });
         } else if (severity >= 3) {
-          toast.warning(`Major interaction detected!`);
+          toast.warning(`🚨 MAJOR INTERACTION: ${drug1Name} and ${drug2Name} have a major interaction! Consult your healthcare provider immediately.`, {
+            autoClose: 7000,
+            toastId: 'major'
+          });
         } else if (severity >= 2) {
-          toast.warning(`Moderate interaction found`);
+          toast.warning(`⚠️ MODERATE INTERACTION: ${drug1Name} and ${drug2Name} may interact. Monitor for side effects and consult your doctor.`, {
+            autoClose: 6000,
+            toastId: 'moderate'
+          });
         } else {
-          toast.info(`Minor interaction noted`);
+          toast.info(`ℹ️ MINOR INTERACTION: ${drug1Name} and ${drug2Name} have a minor interaction. Be aware of potential mild effects.`, {
+            autoClose: 5000,
+            toastId: 'minor'
+          });
         }
       } else {
-        toast.success("No known interactions found");
+        toast.success(`✅ NO INTERACTIONS: ${drug1.trim()} and ${drug2.trim()} appear to be safe to take together.`, {
+          autoClose: 4000,
+          toastId: 'safe'
+        });
       }
     } catch (error) {
       console.error("Error checking interactions:", error);
@@ -135,7 +153,7 @@ const DrugInteractionChecker2: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 py-6 px-2 sm:px-4 md:px-8 bg-gradient-to-br from-red-50 to-orange-100 min-h-screen">
+    <div className="max-w-6xl mx-auto space-y-8 py-6 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-red-50 to-orange-100 min-h-screen">
       {/* Header */}
       <div className="text-center mb-2 sm:mb-4">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-700 via-orange-600 to-yellow-500 mb-1 sm:mb-2 drop-shadow">
@@ -261,6 +279,41 @@ const DrugInteractionChecker2: React.FC = () => {
                 )}
             </div>
           </div>
+
+          {/* Interaction Alert Banner */}
+          {results.interaction.exists && (
+            <div className={`rounded-lg p-4 mb-6 border-l-4 ${
+              results.interaction.severity_score >= 4 
+                ? 'bg-red-100 border-red-500 text-red-800'
+                : results.interaction.severity_score >= 3
+                ? 'bg-orange-100 border-orange-500 text-orange-800'
+                : results.interaction.severity_score >= 2
+                ? 'bg-yellow-100 border-yellow-500 text-yellow-800'
+                : 'bg-blue-100 border-blue-500 text-blue-800'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">
+                  {results.interaction.severity_score >= 4 ? '🚫' : 
+                   results.interaction.severity_score >= 3 ? '⚠️' : 
+                   results.interaction.severity_score >= 2 ? '⚠️' : 'ℹ️'}
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">
+                    {results.interaction.severity_score >= 4 ? 'CONTRAINDICATED - DO NOT USE TOGETHER' : 
+                     results.interaction.severity_score >= 3 ? 'MAJOR INTERACTION - CONSULT DOCTOR IMMEDIATELY' : 
+                     results.interaction.severity_score >= 2 ? 'MODERATE INTERACTION - MONITOR CLOSELY' : 
+                     'MINOR INTERACTION - BE AWARE'}
+                  </h3>
+                  <p className="text-sm mt-1">
+                    {results.interaction.severity_score >= 4 ? 'This drug combination is dangerous and should be avoided.' : 
+                     results.interaction.severity_score >= 3 ? 'This combination requires immediate medical supervision.' : 
+                     results.interaction.severity_score >= 2 ? 'This combination may require dosage adjustments or monitoring.' : 
+                     'This combination has minimal risk but awareness is recommended.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Interaction Results */}
           {results.interaction.exists ? (

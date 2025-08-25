@@ -42,7 +42,7 @@ const DrugInteractionChecker: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 py-6 px-2 sm:px-4 md:px-8 bg-gradient-to-br from-blue-50 to-purple-100 min-h-screen">
+    <div className="max-w-6xl mx-auto space-y-8 py-6 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 to-purple-100 min-h-screen">
       {/* Header */}
       <div className="text-center mb-2 sm:mb-4">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-purple-600 to-pink-500 mb-1 sm:mb-2 drop-shadow">

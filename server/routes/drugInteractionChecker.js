@@ -187,8 +187,8 @@ router.get("/conditions", async (req, res, next) => {
             s.name,
             s.description,
             s.severity
-          FROM Symptom s
-          JOIN Symptom_To_Condition stc ON s.id = stc.symptom_id
+          FROM symptoms s
+          JOIN symptom_conditions stc ON s.id = stc.symptom_id
           WHERE stc.condition_id = ?
           ORDER BY s.severity DESC, s.name
           `,
@@ -271,7 +271,7 @@ router.get("/condition-details", async (req, res, next) => {
         s.name,
         s.description,
         s.severity
-      FROM Symptom s
+      FROM symptoms s
       JOIN Symptom_To_Condition stc ON s.id = stc.symptom_id
       WHERE stc.condition_id = ?
       ORDER BY s.severity DESC, s.name
@@ -290,7 +290,7 @@ router.get("/condition-details", async (req, res, next) => {
       JOIN Symptom_To_Condition stc ON c.id = stc.condition_id
       WHERE stc.symptom_id IN (
         SELECT symptom_id 
-        FROM Symptom_To_Condition 
+        FROM symptom_conditions 
         WHERE condition_id = ?
       )
       AND c.id != ?
@@ -458,19 +458,13 @@ async function searchDrug(searchTerm) {
             WHEN LOWER(d.generic_name) LIKE ? THEN 1
             ELSE 2
         END as relevance_score
-    FROM Drug d
-    LEFT JOIN Drug_Brand db ON d.id = db.drug_id
+    FROM drugs d
     WHERE 
-        LOWER(d.generic_name) LIKE ? 
-        OR d.id IN (
-            SELECT DISTINCT drug_id 
-            FROM Drug_Brand 
-            WHERE LOWER(brand_name) LIKE ?
-        )
+        LOWER(d.generic_name) LIKE ?
     ORDER BY relevance_score, d.generic_name
     LIMIT 5
     `,
-    [term, term, term]
+    [term]
   );
 
   return results;
@@ -487,7 +481,7 @@ async function getDrugDetails(drugId) {
         d.generic_name,
         d.drug_class,
         d.description
-    FROM Drug d
+    FROM drugs d
     WHERE d.id = ?
     `,
     [drugId]
@@ -495,16 +489,18 @@ async function getDrugDetails(drugId) {
 
   if (!drug) return null;
 
-  // Get brands for this drug - maintain exact pairing from database rows
-  const brandsData = await database.all(
-    `
-    SELECT DISTINCT brand_name, manufacturer
-    FROM Drug_Brand
-    WHERE drug_id = ?
-    ORDER BY brand_name
-    `,
-    [drugId]
-  );
+  // Parse brands and manufacturers from JSON
+  let brandsData = [];
+  try {
+    const brands = JSON.parse(drug.brands || '[]');
+    const manufacturers = JSON.parse(drug.manufacturers || '[]');
+    brandsData = brands.map((brand, index) => ({
+      brand_name: brand,
+      manufacturer: manufacturers[index] || 'Unknown'
+    }));
+  } catch (e) {
+    brandsData = [];
+  }
 
   // Extract brands and manufacturers arrays that correspond by index (no duplicates)
   const brands = brandsData.map(b => b.brand_name);
@@ -533,7 +529,7 @@ async function checkDrugInteraction(drug1Id, drug2Id, conditionNames = []) {
         i.severity_score,
         i.description,
         i.mechanism
-    FROM Interaction i
+    FROM interactions i
     WHERE 
         (i.drug1_id = ? AND i.drug2_id = ?) OR
         (i.drug1_id = ? AND i.drug2_id = ?)
@@ -559,7 +555,7 @@ async function checkDrugInteraction(drug1Id, drug2Id, conditionNames = []) {
               adjusted_severity_score,
               adjusted_interaction_type,
               condition_specific_note
-          FROM Condition_Interaction
+          FROM condition_interactions
           WHERE interaction_id = ? AND condition_id = ?
           `,
           [interaction.id, condition.id]
@@ -590,7 +586,7 @@ async function getClinicalNotes(interactionId) {
         clinical_note,
         note_type,
         recommendation
-    FROM Clinical_Note
+    FROM clinical_notes
     WHERE interaction_id = ?
     ORDER BY id
     `,
@@ -612,7 +608,7 @@ async function getAlternativeDrugs(interactionId) {
         d_orig.generic_name as original_drug_name,
         d_alt.generic_name as alternative_name,
         d_alt.drug_class as alternative_class
-    FROM Alternative_Drug ad
+    FROM alternative_drugs ad
     JOIN Drug d_orig ON ad.original_drug_id = d_orig.id
     JOIN Drug d_alt ON ad.alternative_drug_id = d_alt.id
     WHERE ad.interaction_id = ?

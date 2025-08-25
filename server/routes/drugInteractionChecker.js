@@ -177,10 +177,35 @@ router.get("/conditions", async (req, res, next) => {
     
     const conditions = await database.all(query, params);
     
+    // Get symptoms for each condition
+    const conditionsWithSymptoms = await Promise.all(
+      conditions.map(async (condition) => {
+        const symptoms = await database.all(
+          `
+          SELECT DISTINCT
+            s.id,
+            s.name,
+            s.description,
+            s.severity
+          FROM Symptom s
+          JOIN Symptom_To_Condition stc ON s.id = stc.symptom_id
+          WHERE stc.condition_id = ?
+          ORDER BY s.severity DESC, s.name
+          `,
+          [condition.id]
+        );
+        
+        return {
+          ...condition,
+          symptoms: symptoms
+        };
+      })
+    );
+    
     res.json({
       search_term: search || null,
-      conditions,
-      total: conditions.length
+      conditions: conditionsWithSymptoms,
+      total: conditionsWithSymptoms.length
     });
 
   } catch (error) {
@@ -238,9 +263,53 @@ router.get("/condition-details", async (req, res, next) => {
       });
     }
 
+    // Get symptoms for this condition
+    const symptoms = await database.all(
+      `
+      SELECT DISTINCT
+        s.id,
+        s.name,
+        s.description,
+        s.severity
+      FROM Symptom s
+      JOIN Symptom_To_Condition stc ON s.id = stc.symptom_id
+      WHERE stc.condition_id = ?
+      ORDER BY s.severity DESC, s.name
+      `,
+      [condition.id]
+    );
+
+    // Get related conditions (conditions that share symptoms)
+    const relatedConditions = await database.all(
+      `
+      SELECT DISTINCT
+        c.id,
+        c.name,
+        COUNT(DISTINCT stc.symptom_id) as shared_symptoms
+      FROM \`Condition\` c
+      JOIN Symptom_To_Condition stc ON c.id = stc.condition_id
+      WHERE stc.symptom_id IN (
+        SELECT symptom_id 
+        FROM Symptom_To_Condition 
+        WHERE condition_id = ?
+      )
+      AND c.id != ?
+      GROUP BY c.id, c.name
+      HAVING shared_symptoms > 0
+      ORDER BY shared_symptoms DESC, c.name
+      LIMIT 5
+      `,
+      [condition.id, condition.id]
+    );
+
     res.json({
       search_term: name,
-      condition
+      condition: {
+        ...condition,
+        symptoms: symptoms,
+        symptom_count: symptoms.length,
+        related_conditions: relatedConditions
+      }
     });
 
   } catch (error) {

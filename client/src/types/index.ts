@@ -5,6 +5,7 @@ export interface Drug {
   drug_class: string;
   description: string;
   brands?: string[];
+  manufacturers?: string[];
   created_at?: string;
   updated_at?: string;
 }
@@ -61,6 +62,7 @@ export interface Symptom {
   id: number;
   name: string;
   description: string;
+  severity: number;
   relevance_score?: number;
   related_conditions?: string[] | Condition[];
   created_at?: string;

@@ -2,6 +2,7 @@ import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import "./App.css";
 import "react-toastify/dist/ReactToastify.css";
 import DrugInteractionChecker from "./components/DrugInteractionChecker";
+import DrugInteractionChecker2 from "./components/DrugInteractionChecker2";
 import ConditionsList from "./components/ConditionsList";
 import Header from "./components/Header";
 import { ToastContainer } from "react-toastify";
@@ -16,6 +17,7 @@ function App() {
         <main>
           <Routes>
             <Route path="/" element={<DrugInteractionChecker />} />
+            <Route path="/drug-interactions" element={<DrugInteractionChecker2 />} />
             <Route path="/conditions" element={<ConditionsList />} />
           </Routes>
         </main>

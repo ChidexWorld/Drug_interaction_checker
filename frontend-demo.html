@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Precious Medical Information System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-green-50 to-blue-100">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-100/80 via-purple-100/80 to-pink-100/80 shadow-lg border-b border-blue-200/40 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl shadow-lg flex items-center justify-center">
+                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h1 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-purple-600 to-pink-500">
+                            Precious
+                        </h1>
+                        <p class="text-sm text-gray-500 font-medium">
+                            Medical Information System
+                        </p>
+                    </div>
+                </div>
+                
+                <nav class="flex space-x-2">
+                    <button onclick="showDrugs()" id="drugBtn" class="px-3 py-2 rounded-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-xl text-sm">
+                        Drug Info
+                    </button>
+                    <button onclick="showInteractions()" id="interactionBtn" class="px-3 py-2 rounded-xl font-semibold text-blue-800 hover:bg-blue-100/60 text-sm">
+                        Drug Interactions
+                    </button>
+                    <button onclick="showConditions()" id="condBtn" class="px-3 py-2 rounded-xl font-semibold text-blue-800 hover:bg-blue-100/60 text-sm">
+                        Conditions
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto py-8 px-4">
+        <!-- Drug Information Section -->
+        <div id="drugSection" class="space-y-8">
+            <div class="text-center">
+                <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-purple-600 to-pink-500 mb-2">
+                    Drug Information Checker
+                </h1>
+                <p class="text-lg text-gray-700 max-w-2xl mx-auto font-medium">
+                    Search for any medication to get detailed information including generic name, drug class, description, brand names, and manufacturers.
+                </p>
+            </div>
+            
+            <div class="bg-white/80 backdrop-blur-md border border-blue-100 rounded-2xl p-8 shadow-xl">
+                <h2 class="text-xl font-bold text-blue-900 mb-4">Search for Drug Information</h2>
+                <div class="relative mb-4">
+                    <input 
+                        type="text" 
+                        id="drugSearch" 
+                        placeholder="Search for drugs by generic or brand name (e.g., aspirin, acetaminophen)..."
+                        class="w-full px-4 py-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <button onclick="searchDrug()" class="absolute right-2 top-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Search
+                    </button>
+                </div>
+                <div id="drugResults" class="hidden">
+                    <!-- Drug results will appear here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Drug Interaction Section -->
+        <div id="interactionSection" class="space-y-8 hidden">
+            <div class="text-center">
+                <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-red-700 via-orange-600 to-yellow-500 mb-2">
+                    Drug Interaction Checker
+                </h1>
+                <p class="text-lg text-gray-700 max-w-2xl mx-auto font-medium">
+                    Check for harmful interactions between two medications. Enter both drug names to analyze potential interactions and safety concerns.
+                </p>
+            </div>
+            
+            <div class="bg-white/80 backdrop-blur-md border border-red-100 rounded-2xl p-8 shadow-xl">
+                <h2 class="text-xl font-bold text-red-900 mb-4">Check Drug Interactions</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">First Drug</label>
+                        <input 
+                            type="text" 
+                            id="drug1Input" 
+                            placeholder="Enter first drug name (e.g., aspirin)..."
+                            class="w-full px-4 py-3 border border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                        >
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Second Drug</label>
+                        <input 
+                            type="text" 
+                            id="drug2Input" 
+                            placeholder="Enter second drug name (e.g., warfarin)..."
+                            class="w-full px-4 py-3 border border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                        >
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Medical Conditions (Optional)</label>
+                    <input 
+                        type="text" 
+                        id="conditionsInput" 
+                        placeholder="Enter conditions separated by commas (e.g., Hypertension, Diabetes)..."
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    >
+                    <p class="text-xs text-gray-600 mt-1">Adding conditions helps provide more accurate interaction severity assessments.</p>
+                </div>
+                
+                <button onclick="checkInteractions()" class="w-full bg-gradient-to-r from-red-500 to-orange-500 text-white px-6 py-3 rounded-lg hover:from-red-600 hover:to-orange-600 font-semibold">
+                    Check for Interactions
+                </button>
+                
+                <div id="interactionResults" class="hidden mt-6">
+                    <!-- Interaction results will appear here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Conditions Section -->
+        <div id="conditionsSection" class="space-y-8 hidden">
+            <div class="text-center">
+                <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-700 via-blue-600 to-purple-500 mb-2">
+                    Medical Conditions Database
+                </h1>
+                <p class="text-lg text-gray-700 max-w-2xl mx-auto font-medium">
+                    Browse and search through our comprehensive database of medical conditions with detailed descriptions and associated symptoms.
+                </p>
+            </div>
+            
+            <div class="bg-white/80 backdrop-blur-md border border-green-100 rounded-2xl p-8 shadow-xl">
+                <h2 class="text-xl font-bold text-green-900 mb-4">Search Medical Conditions</h2>
+                <div class="relative mb-4">
+                    <input 
+                        type="text" 
+                        id="conditionSearch" 
+                        placeholder="Search conditions by name or description (e.g., diabetes, hypertension)..."
+                        class="w-full px-4 py-3 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                    <button onclick="searchConditions()" class="absolute right-2 top-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Search
+                    </button>
+                </div>
+                <button onclick="loadAllConditions()" class="mb-4 bg-green-100 text-green-800 px-4 py-2 rounded hover:bg-green-200">
+                    Load All Conditions
+                </button>
+                <div id="conditionsResults">
+                    Click "Load All Conditions" to see the medical conditions database with symptoms.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'http://localhost:4000/api';
+        
+        function showDrugs() {
+            document.getElementById('drugSection').classList.remove('hidden');
+            document.getElementById('interactionSection').classList.add('hidden');
+            document.getElementById('conditionsSection').classList.add('hidden');
+            updateActiveButton('drugBtn');
+        }
+        
+        function showInteractions() {
+            document.getElementById('drugSection').classList.add('hidden');
+            document.getElementById('interactionSection').classList.remove('hidden');
+            document.getElementById('conditionsSection').classList.add('hidden');
+            updateActiveButton('interactionBtn');
+        }
+        
+        function showConditions() {
+            document.getElementById('drugSection').classList.add('hidden');
+            document.getElementById('interactionSection').classList.add('hidden');
+            document.getElementById('conditionsSection').classList.remove('hidden');
+            updateActiveButton('condBtn');
+        }
+        
+        function updateActiveButton(activeId) {
+            // Reset all buttons
+            document.getElementById('drugBtn').className = 'px-3 py-2 rounded-xl font-semibold text-blue-800 hover:bg-blue-100/60 text-sm';
+            document.getElementById('interactionBtn').className = 'px-3 py-2 rounded-xl font-semibold text-blue-800 hover:bg-blue-100/60 text-sm';
+            document.getElementById('condBtn').className = 'px-3 py-2 rounded-xl font-semibold text-blue-800 hover:bg-blue-100/60 text-sm';
+            
+            // Set active button
+            if (activeId === 'drugBtn') {
+                document.getElementById('drugBtn').className = 'px-3 py-2 rounded-xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-xl text-sm';
+            } else if (activeId === 'interactionBtn') {
+                document.getElementById('interactionBtn').className = 'px-3 py-2 rounded-xl font-semibold bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-xl text-sm';
+            } else if (activeId === 'condBtn') {
+                document.getElementById('condBtn').className = 'px-3 py-2 rounded-xl font-semibold bg-gradient-to-r from-green-500 to-blue-500 text-white shadow-xl text-sm';
+            }
+        }
+        
+        async function searchDrug() {
+            const query = document.getElementById('drugSearch').value.trim();
+            if (!query) {
+                alert('Please enter a drug name to search');
+                return;
+            }
+            
+            document.getElementById('drugResults').innerHTML = '<div class="text-center py-4">Loading...</div>';
+            document.getElementById('drugResults').classList.remove('hidden');
+            
+            try {
+                const response = await axios.get(`${API_BASE}/drug-checker/drug-details?name=${encodeURIComponent(query)}`);
+                displayDrugDetails(response.data);
+            } catch (error) {
+                document.getElementById('drugResults').innerHTML = `
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                        <strong>Error:</strong> ${error.response?.data?.message || 'Failed to fetch drug information. Make sure the server is running on port 4000.'}
+                    </div>
+                `;
+            }
+        }
+        
+        function displayDrugDetails(data) {
+            const drug = data.drug;
+            const html = `
+                <div class="bg-white rounded-xl shadow-lg border border-blue-200 p-6 space-y-4">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2 bg-blue-100 rounded-lg">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 7.172V5L8 4z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-blue-900">${drug.generic_name}</h3>
+                            <span class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                                ${drug.drug_class}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    ${drug.description ? `
+                        <div class="space-y-2">
+                            <h4 class="font-semibold text-gray-800">Description</h4>
+                            <p class="text-gray-700 leading-relaxed">${drug.description}</p>
+                        </div>
+                    ` : ''}
+                    
+                    ${drug.brands && drug.brands.length > 0 ? `
+                        <div class="space-y-3">
+                            <h4 class="font-semibold text-gray-800">Brand Names</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                ${drug.brands.map((brand, index) => `
+                                    <div class="bg-gray-50 rounded-lg p-3 border">
+                                        <span class="font-medium text-gray-900">${brand}</span>
+                                        ${drug.manufacturers && drug.manufacturers[index] ? `
+                                            <span class="block text-sm text-gray-600">by ${drug.manufacturers[index]}</span>
+                                        ` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p class="text-sm text-blue-800">
+                            <strong>Note:</strong> This information is for educational purposes only. 
+                            Always consult with a healthcare professional before starting, stopping, 
+                            or changing any medication.
+                        </p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('drugResults').innerHTML = html;
+        }
+        
+        async function checkInteractions() {
+            const drug1 = document.getElementById('drug1Input').value.trim();
+            const drug2 = document.getElementById('drug2Input').value.trim();
+            const conditions = document.getElementById('conditionsInput').value.trim();
+            
+            if (!drug1 || !drug2) {
+                alert('Please enter both drug names to check for interactions');
+                return;
+            }
+            
+            document.getElementById('interactionResults').innerHTML = '<div class="text-center py-4">Checking interactions...</div>';
+            document.getElementById('interactionResults').classList.remove('hidden');
+            
+            try {
+                const requestBody = {
+                    drug1: drug1,
+                    drug2: drug2
+                };
+                
+                if (conditions) {
+                    requestBody.condition_names = conditions.split(',').map(c => c.trim()).filter(c => c.length > 0);
+                }
+                
+                const response = await axios.post(`${API_BASE}/drug-checker/search-and-check`, requestBody);
+                displayInteractionResults(response.data);
+            } catch (error) {
+                document.getElementById('interactionResults').innerHTML = `
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                        <strong>Error:</strong> ${error.response?.data?.message || 'Failed to check interactions. Make sure the server is running on port 4000.'}
+                    </div>
+                `;
+            }
+        }
+        
+        function displayInteractionResults(data) {
+            const interaction = data.interaction;
+            const drugs = data.drugs;
+            
+            let html = `
+                <div class="space-y-6">
+                    <!-- Drug Information -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <h4 class="font-semibold text-blue-900 mb-2">${drugs.drug1.generic_name}</h4>
+                            <p class="text-sm text-blue-800 mb-1"><strong>Class:</strong> ${drugs.drug1.drug_class}</p>
+                            ${drugs.drug1.brands && drugs.drug1.brands.length > 0 ? `
+                                <p class="text-sm text-blue-700"><strong>Brands:</strong> ${drugs.drug1.brands.slice(0, 3).join(', ')}</p>
+                            ` : ''}
+                        </div>
+                        <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                            <h4 class="font-semibold text-purple-900 mb-2">${drugs.drug2.generic_name}</h4>
+                            <p class="text-sm text-purple-800 mb-1"><strong>Class:</strong> ${drugs.drug2.drug_class}</p>
+                            ${drugs.drug2.brands && drugs.drug2.brands.length > 0 ? `
+                                <p class="text-sm text-purple-700"><strong>Brands:</strong> ${drugs.drug2.brands.slice(0, 3).join(', ')}</p>
+                            ` : ''}
+                        </div>
+                    </div>
+            `;
+            
+            if (interaction.exists) {
+                const severityColor = getSeverityColorForInteraction(interaction.severity_score);
+                const riskIcon = getRiskIcon(interaction.severity_score);
+                
+                html += `
+                    <!-- Interaction Found -->
+                    <div class="bg-white rounded-lg border-l-4 ${severityColor.border} p-6 shadow-md">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0 ${severityColor.bg} p-3 rounded-full">
+                                ${riskIcon}
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <h3 class="text-lg font-bold ${severityColor.text}">
+                                        ${interaction.risk_level} Interaction Detected
+                                    </h3>
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium ${severityColor.badge}">
+                                        Severity: ${interaction.severity_score}/4
+                                    </span>
+                                </div>
+                                
+                                <div class="space-y-3">
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900">Type:</h4>
+                                        <p class="text-gray-700">${interaction.interaction_type}</p>
+                                    </div>
+                                    
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900">Description:</h4>
+                                        <p class="text-gray-700">${interaction.description}</p>
+                                    </div>
+                                    
+                                    ${interaction.mechanism ? `
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900">Mechanism:</h4>
+                                            <p class="text-gray-700">${interaction.mechanism}</p>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${interaction.condition_adjusted ? `
+                                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                            <h4 class="font-semibold text-yellow-800">Condition-Specific Note:</h4>
+                                            <p class="text-yellow-700">${interaction.condition_note || 'Severity adjusted based on patient conditions'}</p>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add clinical notes if available
+                if (data.clinical_notes && data.clinical_notes.length > 0) {
+                    html += `
+                        <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <h4 class="font-semibold text-blue-900 mb-3">Clinical Notes</h4>
+                            <div class="space-y-2">
+                                ${data.clinical_notes.map(note => `
+                                    <div class="bg-white rounded p-3 border border-blue-100">
+                                        <p class="text-sm text-gray-700 mb-1">${note.clinical_note}</p>
+                                        ${note.recommendation ? `
+                                            <p class="text-xs text-blue-600 font-medium">Recommendation: ${note.recommendation}</p>
+                                        ` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Add alternative drugs if available
+                if (data.alternative_drugs && data.alternative_drugs.length > 0) {
+                    html += `
+                        <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                            <h4 class="font-semibold text-green-900 mb-3">Alternative Drug Suggestions</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                ${data.alternative_drugs.map(alt => `
+                                    <div class="bg-white rounded p-3 border border-green-100">
+                                        <p class="font-medium text-gray-900">Instead of ${alt.original_drug_name}:</p>
+                                        <p class="text-green-700 font-semibold">${alt.alternative_name}</p>
+                                        <p class="text-xs text-gray-600 mt-1">${alt.reason}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+            } else {
+                html += `
+                    <!-- No Interaction -->
+                    <div class="bg-green-50 rounded-lg border-l-4 border-green-400 p-6">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-lg font-bold text-green-800">No Known Interactions</h3>
+                                <p class="text-green-700">${interaction.message}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Add recommendations
+            if (data.recommendations && data.recommendations.length > 0) {
+                html += `
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <h4 class="font-semibold text-gray-900 mb-3">Recommendations</h4>
+                        <div class="space-y-2">
+                            ${data.recommendations.map(rec => `
+                                <div class="flex items-start gap-2">
+                                    <span class="inline-block w-2 h-2 bg-gray-400 rounded-full mt-2 flex-shrink-0"></span>
+                                    <p class="text-sm text-gray-700">${rec.message}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += `</div>`;
+            
+            document.getElementById('interactionResults').innerHTML = html;
+        }
+        
+        function getSeverityColorForInteraction(severity) {
+            switch(severity) {
+                case 4: return {
+                    border: 'border-red-500',
+                    bg: 'bg-red-100',
+                    text: 'text-red-800',
+                    badge: 'bg-red-100 text-red-800'
+                };
+                case 3: return {
+                    border: 'border-orange-500',
+                    bg: 'bg-orange-100',
+                    text: 'text-orange-800',
+                    badge: 'bg-orange-100 text-orange-800'
+                };
+                case 2: return {
+                    border: 'border-yellow-500',
+                    bg: 'bg-yellow-100',
+                    text: 'text-yellow-800',
+                    badge: 'bg-yellow-100 text-yellow-800'
+                };
+                case 1: return {
+                    border: 'border-blue-500',
+                    bg: 'bg-blue-100',
+                    text: 'text-blue-800',
+                    badge: 'bg-blue-100 text-blue-800'
+                };
+                default: return {
+                    border: 'border-gray-500',
+                    bg: 'bg-gray-100',
+                    text: 'text-gray-800',
+                    badge: 'bg-gray-100 text-gray-800'
+                };
+            }
+        }
+        
+        function getRiskIcon(severity) {
+            switch(severity) {
+                case 4: return '<svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>';
+                case 3: return '<svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>';
+                case 2: return '<svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+                case 1: return '<svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+                default: return '<svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            }
+        }
+        
+        async function loadAllConditions() {
+            document.getElementById('conditionsResults').innerHTML = '<div class="text-center py-4">Loading conditions...</div>';
+            
+            try {
+                const response = await axios.get(`${API_BASE}/drug-checker/conditions`);
+                displayConditions(response.data.conditions);
+            } catch (error) {
+                document.getElementById('conditionsResults').innerHTML = `
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                        <strong>Error:</strong> ${error.response?.data?.message || 'Failed to fetch conditions. Make sure the server is running on port 4000.'}
+                    </div>
+                `;
+            }
+        }
+        
+        async function searchConditions() {
+            const query = document.getElementById('conditionSearch').value.trim();
+            
+            document.getElementById('conditionsResults').innerHTML = '<div class="text-center py-4">Searching...</div>';
+            
+            try {
+                const url = query ? 
+                    `${API_BASE}/drug-checker/conditions?search=${encodeURIComponent(query)}` :
+                    `${API_BASE}/drug-checker/conditions`;
+                const response = await axios.get(url);
+                displayConditions(response.data.conditions);
+            } catch (error) {
+                document.getElementById('conditionsResults').innerHTML = `
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                        <strong>Error:</strong> ${error.response?.data?.message || 'Failed to fetch conditions. Make sure the server is running on port 4000.'}
+                    </div>
+                `;
+            }
+        }
+        
+        function getSeverityColor(severity) {
+            switch(severity) {
+                case 5: return 'text-red-600 bg-red-100';
+                case 4: return 'text-orange-600 bg-orange-100';
+                case 3: return 'text-yellow-600 bg-yellow-100';
+                case 2: return 'text-blue-600 bg-blue-100';
+                case 1: return 'text-green-600 bg-green-100';
+                default: return 'text-gray-600 bg-gray-100';
+            }
+        }
+        
+        function getSeverityLabel(severity) {
+            switch(severity) {
+                case 5: return 'Critical';
+                case 4: return 'Severe';
+                case 3: return 'Moderate';
+                case 2: return 'Mild';
+                case 1: return 'Minor';
+                default: return 'Unknown';
+            }
+        }
+        
+        function displayConditions(conditions) {
+            if (conditions.length === 0) {
+                document.getElementById('conditionsResults').innerHTML = `
+                    <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+                        No conditions found matching your search criteria.
+                    </div>
+                `;
+                return;
+            }
+            
+            const html = `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    ${conditions.map(condition => `
+                        <div class="bg-white rounded-lg shadow-md border hover:shadow-lg transition-all cursor-pointer p-4" 
+                             onclick="toggleCondition(${condition.id})" id="condition-${condition.id}">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0 p-2 bg-green-100 rounded-lg">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-sm font-semibold text-gray-900 mb-1 truncate">
+                                        ${condition.name}
+                                    </h3>
+                                    <p class="text-xs text-gray-600 line-clamp-2 mb-2">
+                                        ${condition.description}
+                                    </p>
+                                    <div class="flex items-center gap-2 text-xs">
+                                        <svg class="w-3 h-3 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                        </svg>
+                                        <span class="text-green-700 font-medium">
+                                            ${condition.symptoms?.length || 0} symptom${condition.symptoms?.length !== 1 ? 's' : ''}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Expanded Details -->
+                            <div id="details-${condition.id}" class="hidden mt-4 pt-4 border-t border-green-200">
+                                <div class="space-y-3">
+                                    <div>
+                                        <h4 class="text-sm font-semibold text-green-800">Full Description:</h4>
+                                        <p class="text-sm text-gray-700 mt-1 leading-relaxed">
+                                            ${condition.description}
+                                        </p>
+                                    </div>
+                                    
+                                    ${condition.symptoms && condition.symptoms.length > 0 ? `
+                                        <div>
+                                            <h4 class="text-sm font-semibold text-green-800 mb-2">
+                                                🩺 Associated Symptoms (${condition.symptoms.length})
+                                            </h4>
+                                            <div class="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                                                ${condition.symptoms.map(symptom => `
+                                                    <div class="flex items-start justify-between p-2 bg-gray-50 rounded border">
+                                                        <div class="flex-1">
+                                                            <div class="flex items-center gap-2 flex-wrap">
+                                                                <span class="text-sm font-medium text-gray-900">
+                                                                    ${symptom.name}
+                                                                </span>
+                                                                <span class="px-1.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(symptom.severity)}">
+                                                                    ${getSeverityLabel(symptom.severity)}
+                                                                </span>
+                                                            </div>
+                                                            <p class="text-xs text-gray-600 mt-1">
+                                                                ${symptom.description}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    ` : '<div class="text-sm text-gray-500 italic">No symptoms recorded for this condition.</div>'}
+                                    
+                                    <div class="text-xs text-green-600 pt-2 border-t border-green-100">
+                                        Click to collapse • Condition ID: ${condition.id}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="text-center mt-6">
+                    <div class="inline-flex items-center gap-2 bg-white/80 px-4 py-2 rounded-full shadow-sm border border-green-200">
+                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-green-800">
+                            ${conditions.length} medical condition${conditions.length !== 1 ? 's' : ''} found
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('conditionsResults').innerHTML = html;
+        }
+        
+        function toggleCondition(conditionId) {
+            const details = document.getElementById(`details-${conditionId}`);
+            const card = document.getElementById(`condition-${conditionId}`);
+            
+            if (details.classList.contains('hidden')) {
+                details.classList.remove('hidden');
+                card.classList.add('border-green-500', 'ring-2', 'ring-green-200', 'bg-green-50');
+            } else {
+                details.classList.add('hidden');
+                card.classList.remove('border-green-500', 'ring-2', 'ring-green-200', 'bg-green-50');
+            }
+        }
+
+        // Handle Enter key for search inputs
+        document.getElementById('drugSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchDrug();
+        });
+        
+        document.getElementById('conditionSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchConditions();
+        });
+        
+        // Handle Enter key for interaction inputs
+        document.getElementById('drug1Input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkInteractions();
+        });
+        
+        document.getElementById('drug2Input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkInteractions();
+        });
+        
+        document.getElementById('conditionsInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') checkInteractions();
+        });
+        
+        // Start with drug section by default
+        document.addEventListener('DOMContentLoaded', function() {
+            showDrugs();
+        });
+    </script>
+</body>
+</html>

@@ -13,6 +13,12 @@ const Header: React.FC = () => {
       description: "Search drug information",
     },
     {
+      name: "Drug Interactions",
+      href: "/drug-interactions",
+      icon: Shield,
+      description: "Check drug interactions",
+    },
+    {
       name: "Medical Conditions",
       href: "/conditions",
       icon: Stethoscope,

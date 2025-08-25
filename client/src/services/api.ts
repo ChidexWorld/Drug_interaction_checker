@@ -6,7 +6,7 @@ import type {
 } from "../types/index";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+  import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -39,7 +39,7 @@ api.interceptors.response.use(
   }
 );
 
-// Drug checker API - simplified to get drug details by name
+// Drug checker API - all available endpoints
 export const drugAPI = {
   // Search drugs by name
   searchDrugs: async (
@@ -65,6 +65,57 @@ export const drugAPI = {
   },
 };
 
+// Drug interaction API - comprehensive interaction checking
+export const drugInteractionAPI = {
+  // Search and check interactions between 2 drugs
+  searchAndCheckInteractions: async (data: {
+    drug1: string;
+    drug2: string;
+    condition_names?: string[];
+  }): Promise<{
+    search_terms: { drug1: string; drug2: string };
+    drugs: {
+      drug1: Drug;
+      drug2: Drug;
+    };
+    interaction: {
+      exists: boolean;
+      interaction_type?: string;
+      severity_score?: number;
+      description?: string;
+      mechanism?: string;
+      risk_level: string;
+      risk_color: string;
+      condition_adjusted?: boolean;
+      condition_note?: string;
+      message?: string;
+    };
+    clinical_notes?: Array<{
+      id: number;
+      clinical_note: string;
+      note_type: string;
+      recommendation: string;
+    }>;
+    alternative_drugs?: Array<{
+      original_drug_id: number;
+      alternative_drug_id: number;
+      reason: string;
+      safety_note: string;
+      original_drug_name: string;
+      alternative_name: string;
+      alternative_class: string;
+    }>;
+    recommendations: Array<{
+      type: string;
+      message: string;
+      priority: string;
+    }>;
+  }> => {
+    const response = await api.post("/drug-checker/search-and-check", data);
+    return response.data;
+  },
+};
+
 // Conditions API
 export const conditionsAPI = {
   // Get all conditions with optional search
@@ -74,6 +125,12 @@ export const conditionsAPI = {
       id: number;
       name: string;
       description: string;
+      symptoms: Array<{
+        id: number;
+        name: string;
+        description: string;
+        severity: number;
+      }>;
     }>;
     total: number;
   }> => {
@@ -90,6 +147,18 @@ export const conditionsAPI = {
       id: number;
       name: string;
       description: string;
+      symptoms: Array<{
+        id: number;
+        name: string;
+        description: string;
+        severity: number;
+      }>;
+      symptom_count: number;
+      related_conditions: Array<{
+        id: number;
+        name: string;
+        shared_symptoms: number;
+      }>;
     };
   }> => {
     const response = await api.get("/drug-checker/condition-details", {

@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { Search, Heart, AlertCircle, Loader2 } from "lucide-react";
+import { Search, Heart, AlertCircle, Loader2, Activity, TrendingUp } from "lucide-react";
 
 import { conditionsAPI } from "../services/api";
 import LoadingSpinner from "./LoadingSpinner";
+
+interface Symptom {
+  id: number;
+  name: string;
+  description: string;
+  severity: number;
+}
 
 interface Condition {
   id: number;
   name: string;
   description: string;
+  symptoms: Symptom[];
 }
 
 const ConditionsList: React.FC = () => {
@@ -52,6 +60,28 @@ const ConditionsList: React.FC = () => {
 
   const handleConditionClick = (condition: Condition) => {
     setSelectedCondition(selectedCondition?.id === condition.id ? null : condition);
+  };
+
+  const getSeverityColor = (severity: number) => {
+    switch (severity) {
+      case 5: return "text-red-600 bg-red-100";
+      case 4: return "text-orange-600 bg-orange-100";
+      case 3: return "text-yellow-600 bg-yellow-100";
+      case 2: return "text-blue-600 bg-blue-100";
+      case 1: return "text-green-600 bg-green-100";
+      default: return "text-gray-600 bg-gray-100";
+    }
+  };
+
+  const getSeverityLabel = (severity: number) => {
+    switch (severity) {
+      case 5: return "Critical";
+      case 4: return "Severe";
+      case 3: return "Moderate";
+      case 2: return "Mild";
+      case 1: return "Minor";
+      default: return "Unknown";
+    }
   };
 
   return (
@@ -127,23 +157,62 @@ const ConditionsList: React.FC = () => {
                   <h3 className="text-sm font-semibold text-gray-900 mb-1 truncate">
                     {condition.name}
                   </h3>
-                  <p className="text-xs text-gray-600 line-clamp-3">
+                  <p className="text-xs text-gray-600 line-clamp-2 mb-2">
                     {condition.description}
                   </p>
+                  <div className="flex items-center gap-2 text-xs">
+                    <Activity className="w-3 h-3 text-green-600" />
+                    <span className="text-green-700 font-medium">
+                      {condition.symptoms?.length || 0} symptom{condition.symptoms?.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {/* Expanded Details */}
               {selectedCondition?.id === condition.id && (
                 <div className="mt-4 pt-4 border-t border-green-200">
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div>
                       <h4 className="text-sm font-semibold text-green-800">Full Description:</h4>
                       <p className="text-sm text-gray-700 mt-1 leading-relaxed">
                         {condition.description}
                       </p>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-green-600">
+                    
+                    {/* Symptoms Section */}
+                    {condition.symptoms && condition.symptoms.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
+                          <Activity className="w-4 h-4" />
+                          Associated Symptoms ({condition.symptoms.length})
+                        </h4>
+                        <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                          {condition.symptoms.map((symptom) => (
+                            <div 
+                              key={symptom.id} 
+                              className="flex items-start justify-between p-2 bg-white rounded border border-gray-200"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {symptom.name}
+                                  </span>
+                                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(symptom.severity)}`}>
+                                    {getSeverityLabel(symptom.severity)}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                  {symptom.description}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between text-xs text-green-600 pt-2 border-t border-green-100">
                       <span>Condition ID: {condition.id}</span>
                       <span className="bg-green-100 px-2 py-1 rounded">
                         Click to collapse

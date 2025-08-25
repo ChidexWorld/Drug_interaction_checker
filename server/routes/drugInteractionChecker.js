@@ -8,7 +8,7 @@ const router = express.Router();
 const drugInteractionCheckSchema = Joi.object({
   drug1: Joi.string().min(1).max(100).required(),
   drug2: Joi.string().min(1).max(100).required(),
-  condition_ids: Joi.array().items(Joi.number().integer().positive()).optional(),
+  condition_names: Joi.array().items(Joi.string().min(1).max(100)).optional(),
 });
 
 /**
@@ -37,11 +37,11 @@ const drugInteractionCheckSchema = Joi.object({
  *               drug2:
  *                 type: string
  *                 description: Second drug name (generic name or brand name)
- *               condition_ids:
+ *               condition_names:
  *                 type: array
  *                 items:
- *                   type: integer
- *                 description: Optional condition IDs for context-specific interactions
+ *                   type: string
+ *                 description: Optional condition names for context-specific interactions (e.g., ["Hypertension", "Diabetes Mellitus"])
  *     responses:
  *       200:
  *         description: Complete interaction analysis
@@ -57,7 +57,7 @@ router.post("/search-and-check", async (req, res, next) => {
       });
     }
 
-    const { drug1, drug2, condition_ids = [] } = value;
+    const { drug1, drug2, condition_names = [] } = value;
 
     // Step 1: Search for both drugs by generic name or brand name
     const drug1Results = await searchDrug(drug1);
@@ -89,7 +89,7 @@ router.post("/search-and-check", async (req, res, next) => {
     const interactionResult = await checkDrugInteraction(
       selectedDrug1.id,
       selectedDrug2.id,
-      condition_ids
+      condition_names
     );
 
     // Step 4: Get clinical notes if interaction exists
@@ -196,9 +196,9 @@ async function getDrugDetails(drugId) {
   if (!drug) return null;
 
   // Get brands for this drug
-  const brands = await database.all(
+  const brandsData = await database.all(
     `
-    SELECT brand_name, manufacturer
+    SELECT DISTINCT brand_name, manufacturer
     FROM Drug_Brand
     WHERE drug_id = ?
     ORDER BY brand_name
@@ -206,16 +206,21 @@ async function getDrugDetails(drugId) {
     [drugId]
   );
 
+  // Structure the response properly - extract unique brands and manufacturers
+  const uniqueBrands = [...new Set(brandsData.map(b => b.brand_name))];
+  const uniqueManufacturers = [...new Set(brandsData.map(b => b.manufacturer))];
+
   return {
     ...drug,
-    brands: brands,
+    brands: uniqueBrands,
+    manufacturers: uniqueManufacturers,
   };
 }
 
 /**
  * Check for interaction between two drugs
  */
-async function checkDrugInteraction(drug1Id, drug2Id, conditionIds = []) {
+async function checkDrugInteraction(drug1Id, drug2Id, conditionNames = []) {
   // Check for interaction (both directions)
   let interaction = await database.get(
     `
@@ -238,26 +243,34 @@ async function checkDrugInteraction(drug1Id, drug2Id, conditionIds = []) {
   if (!interaction) return null;
 
   // Check for condition-specific adjustments
-  if (conditionIds.length > 0) {
-    for (const conditionId of conditionIds) {
-      const conditionAdjustment = await database.get(
-        `
-        SELECT 
-            adjusted_severity_score,
-            adjusted_interaction_type,
-            condition_specific_note
-        FROM Condition_Interaction
-        WHERE interaction_id = ? AND condition_id = ?
-        `,
-        [interaction.id, conditionId]
+  if (conditionNames.length > 0) {
+    for (const conditionName of conditionNames) {
+      // First get the condition ID from condition name
+      const condition = await database.get(
+        `SELECT id FROM \`Condition\` WHERE name = ?`,
+        [conditionName]
       );
+      
+      if (condition) {
+        const conditionAdjustment = await database.get(
+          `
+          SELECT 
+              adjusted_severity_score,
+              adjusted_interaction_type,
+              condition_specific_note
+          FROM Condition_Interaction
+          WHERE interaction_id = ? AND condition_id = ?
+          `,
+          [interaction.id, condition.id]
+        );
 
-      if (conditionAdjustment) {
-        interaction.severity_score = conditionAdjustment.adjusted_severity_score;
-        interaction.interaction_type = conditionAdjustment.adjusted_interaction_type;
-        interaction.condition_note = conditionAdjustment.condition_specific_note;
-        interaction.condition_adjusted = true;
-        break; // Use first matching condition adjustment
+        if (conditionAdjustment) {
+          interaction.severity_score = conditionAdjustment.adjusted_severity_score;
+          interaction.interaction_type = conditionAdjustment.adjusted_interaction_type;
+          interaction.condition_note = conditionAdjustment.condition_specific_note;
+          interaction.condition_adjusted = true;
+          break; // Use first matching condition adjustment
+        }
       }
     }
   }

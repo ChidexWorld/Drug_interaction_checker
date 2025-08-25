@@ -15,7 +15,7 @@ const testCases = [
     data: {
       drug1: "Lisinopril",
       drug2: "Spironolactone",
-      condition_ids: [1] // Hypertension
+      condition_names: ["Hypertension"]
     }
   },
   {
@@ -23,7 +23,7 @@ const testCases = [
     data: {
       drug1: "Metformin",
       drug2: "Cimetidine",
-      condition_ids: [2] // Diabetes Mellitus
+      condition_names: ["Diabetes Mellitus"]
     }
   },
   {
@@ -31,7 +31,7 @@ const testCases = [
     data: {
       drug1: "Ventolin", // Brand name for Salbutamol
       drug2: "Inderal",  // Brand name for Propranolol
-      condition_ids: [3] // Asthma
+      condition_names: ["Asthma"]
     }
   },
   {
@@ -39,6 +39,21 @@ const testCases = [
     data: {
       drug1: "Lisinopril",
       drug2: "Iron Supplement"
+    }
+  },
+  {
+    name: "Test 5: Optional condition_names - Without conditions",
+    data: {
+      drug1: "Lisinopril",
+      drug2: "Spironolactone"
+    }
+  },
+  {
+    name: "Test 6: Optional condition_names - Empty array",
+    data: {
+      drug1: "Metformin",
+      drug2: "Cimetidine",
+      condition_names: []
     }
   }
 ];
@@ -69,9 +84,11 @@ async function testDrugInteractionChecker() {
       console.log(`📊 Search Terms: "${testCase.data.drug1}" + "${testCase.data.drug2}"`);
       console.log(`🔍 Found Drugs:`);
       console.log(`   • Drug 1: ${result.drugs.drug1.generic_name} (${result.drugs.drug1.drug_class})`);
-      console.log(`     Brands: ${result.drugs.drug1.brands.map(b => b.brand_name).join(', ')}`);
+      console.log(`     Brands: ${result.drugs.drug1.brands.join(', ')}`);
+      console.log(`     Manufacturers: ${result.drugs.drug1.manufacturers.join(', ')}`);
       console.log(`   • Drug 2: ${result.drugs.drug2.generic_name} (${result.drugs.drug2.drug_class})`);
-      console.log(`     Brands: ${result.drugs.drug2.brands.map(b => b.brand_name).join(', ')}`);
+      console.log(`     Brands: ${result.drugs.drug2.brands.join(', ')}`);
+      console.log(`     Manufacturers: ${result.drugs.drug2.manufacturers.join(', ')}`);
 
       // Display interaction results
       if (result.interaction.exists) {
@@ -173,7 +190,7 @@ async function main() {
     console.log('\n🎉 All tests completed!');
     console.log('\nAPI Usage:');
     console.log(`POST ${API_BASE_URL}/drug-checker/search-and-check`);
-    console.log('Body: { "drug1": "Drug Name", "drug2": "Drug Name", "condition_ids": [1,2] }');
+    console.log('Body: { "drug1": "Drug Name", "drug2": "Drug Name", "condition_names": ["Hypertension", "Diabetes Mellitus"] }');
     
   } catch (error) {
     console.log(`❌ Server is not running or accessible at ${API_BASE_URL}`);

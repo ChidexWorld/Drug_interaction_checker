@@ -22,7 +22,7 @@ docker-compose.yml
 .dockerignore
 
 # Ignore database dumps/backups
-*.sql
+# *.sql
 *.dump
 
 # Ignore coverage and test output

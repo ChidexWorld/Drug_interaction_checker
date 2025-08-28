@@ -17,20 +17,36 @@ const dbConfig = {
 
 async function insertBasicData() {
   let connection;
-  
+
   try {
     connection = await mysql.createConnection(dbConfig);
     console.log("Connected to database");
 
-    // Insert drugs first
+    // Insert drugs first (updated table name and structure)
     console.log("Inserting drugs...");
     for (const drug of drugs) {
-      const { id, generic_name, drug_class, brands, manufacturers } = drug;
+      const {
+        id,
+        generic_name,
+        drug_class,
+        brand_name_1,
+        manufacturer_1,
+        brand_name_2,
+        manufacturer_2,
+      } = drug;
       try {
         await connection.execute(
-          `INSERT IGNORE INTO drugs (id, generic_name, drug_class, brands, manufacturers) 
-           VALUES (?, ?, ?, ?, ?)`,
-          [id, generic_name, drug_class, JSON.stringify(brands || []), JSON.stringify(manufacturers || [])]
+          `INSERT IGNORE INTO drug (id, generic_name, drug_class, brand_name_1, manufacturer_1, brand_name_2, manufacturer_2) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [
+            id,
+            generic_name,
+            drug_class,
+            brand_name_1 || null,
+            manufacturer_1 || null,
+            brand_name_2 || null,
+            manufacturer_2 || null,
+          ]
         );
       } catch (err) {
         console.log(`Error inserting drug ${id}: ${err.message}`);
@@ -38,15 +54,15 @@ async function insertBasicData() {
     }
     console.log(`✅ Inserted ${drugs.length} drugs`);
 
-    // Insert conditions
+    // Insert conditions (updated table structure)
     console.log("Inserting conditions...");
     for (const condition of conditions) {
       const { id, name, description } = condition;
       try {
         await connection.execute(
-          `INSERT IGNORE INTO conditions (id, name, description, severity_level) 
-           VALUES (?, ?, ?, ?)`,
-          [id, name, description || null, 1]
+          `INSERT IGNORE INTO conditions (id, name, description) 
+           VALUES (?, ?, ?)`,
+          [id, name, description || null]
         );
       } catch (err) {
         console.log(`Error inserting condition ${id}: ${err.message}`);
@@ -54,43 +70,57 @@ async function insertBasicData() {
     }
     console.log(`✅ Inserted ${conditions.length} conditions`);
 
-    // Insert symptoms
+    // Insert symptoms (updated table structure with symptom_id)
     console.log("Inserting symptoms...");
     for (const symptom of symptoms) {
-      const { id, name } = symptom;
+      const { symptom_id, name } = symptom;
       try {
         await connection.execute(
-          `INSERT IGNORE INTO symptoms (id, name, description, severity) 
-           VALUES (?, ?, ?, ?)`,
-          [id, name, null, 1]
+          `INSERT IGNORE INTO symptoms (symptom_id, name) 
+           VALUES (?, ?)`,
+          [symptom_id, name]
         );
       } catch (err) {
-        console.log(`Error inserting symptom ${id}: ${err.message}`);
+        console.log(`Error inserting symptom ${symptom_id}: ${err.message}`);
       }
     }
     console.log(`✅ Inserted ${symptoms.length} symptoms`);
 
-    // Insert interactions with proper drug names
+    // Insert interactions (updated table structure)
     console.log("Inserting interactions...");
     for (const interaction of interactions) {
-      const { id, drug1_id, drug2_id, interaction_type, severity_score, interaction_description } = interaction;
-      
-      // Get drug names
-      const drug1 = drugs.find(d => d.id === drug1_id);
-      const drug2 = drugs.find(d => d.id === drug2_id);
-      
+      const {
+        id,
+        drug1_id,
+        drug2_id,
+        interaction_type,
+        severity_score,
+        interaction_description,
+      } = interaction;
+
+      // Verify drugs exist
+      const drug1 = drugs.find((d) => d.id === drug1_id);
+      const drug2 = drugs.find((d) => d.id === drug2_id);
+
       if (!drug1 || !drug2) {
-        console.log(`Skipping interaction ${id} - drugs not found`);
+        console.log(
+          `Skipping interaction ${id} - drugs not found (drug1_id: ${drug1_id}, drug2_id: ${drug2_id})`
+        );
         continue;
       }
-      
+
       try {
         await connection.execute(
-          `INSERT IGNORE INTO interactions (id, drug1_id, drug2_id, drug1_name, drug2_name, 
-           interaction_type, severity_score, description) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [id, drug1_id, drug2_id, drug1.generic_name, drug2.generic_name, 
-           interaction_type, severity_score, interaction_description || null]
+          `INSERT IGNORE INTO interactions (id, drug1_id, drug2_id, interaction_type, severity_score, interaction_description) 
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            id,
+            drug1_id,
+            drug2_id,
+            interaction_type,
+            severity_score,
+            interaction_description || null,
+          ]
         );
       } catch (err) {
         console.log(`Error inserting interaction ${id}: ${err.message}`);
@@ -98,20 +128,58 @@ async function insertBasicData() {
     }
     console.log(`✅ Inserted interactions`);
 
-    // Verify data insertion
+    // Verify data insertion (updated table names)
     console.log("\n📊 Data verification:");
-    const [drugCount] = await connection.execute("SELECT COUNT(*) as count FROM drugs");
-    const [conditionCount] = await connection.execute("SELECT COUNT(*) as count FROM conditions");
-    const [symptomCount] = await connection.execute("SELECT COUNT(*) as count FROM symptoms");
-    const [interactionCount] = await connection.execute("SELECT COUNT(*) as count FROM interactions");
+    const [drugCount] = await connection.execute(
+      "SELECT COUNT(*) as count FROM drug"
+    );
+    const [conditionCount] = await connection.execute(
+      "SELECT COUNT(*) as count FROM conditions"
+    );
+    const [symptomCount] = await connection.execute(
+      "SELECT COUNT(*) as count FROM symptoms"
+    );
+    const [interactionCount] = await connection.execute(
+      "SELECT COUNT(*) as count FROM interactions"
+    );
 
     console.log(`Drugs: ${drugCount[0].count}`);
     console.log(`Conditions: ${conditionCount[0].count}`);
     console.log(`Symptoms: ${symptomCount[0].count}`);
     console.log(`Interactions: ${interactionCount[0].count}`);
 
-    console.log("\n✅ Basic data inserted successfully!");
+    // Display sample data to verify structure
+    console.log("\n📋 Sample data verification:");
 
+    // Sample drugs
+    const [sampleDrugs] = await connection.execute(
+      "SELECT id, generic_name, brand_name_1, drug_class FROM drug LIMIT 3"
+    );
+    console.log("Sample drugs:", sampleDrugs);
+
+    // Sample conditions
+    const [sampleConditions] = await connection.execute(
+      "SELECT id, name FROM conditions LIMIT 3"
+    );
+    console.log("Sample conditions:", sampleConditions);
+
+    // Sample symptoms
+    const [sampleSymptoms] = await connection.execute(
+      "SELECT symptom_id, name FROM symptoms LIMIT 3"
+    );
+    console.log("Sample symptoms:", sampleSymptoms);
+
+    // Sample interactions with drug names
+    const [sampleInteractions] = await connection.execute(`
+      SELECT i.id, d1.generic_name as drug1, d2.generic_name as drug2, i.interaction_type, i.severity_score 
+      FROM interactions i 
+      JOIN drug d1 ON i.drug1_id = d1.id 
+      JOIN drug d2 ON i.drug2_id = d2.id 
+      LIMIT 3
+    `);
+    console.log("Sample interactions:", sampleInteractions);
+
+    console.log("\n✅ Basic data inserted successfully!");
   } catch (error) {
     console.error("Error inserting basic data:", error);
     process.exit(1);

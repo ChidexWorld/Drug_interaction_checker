@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { Search, Heart, AlertCircle, Loader2, Activity, TrendingUp } from "lucide-react";
+import {
+  Search,
+  Heart,
+  AlertCircle,
+  Activity,
+  X,
+} from "lucide-react";
 
 import { conditionsAPI } from "../services/api";
 import LoadingSpinner from "./LoadingSpinner";
@@ -19,12 +25,133 @@ interface Condition {
   symptoms: Symptom[];
 }
 
+// Modal Component
+const ConditionModal: React.FC<{
+  condition: Condition | null;
+  isOpen: boolean;
+  onClose: () => void;
+}> = ({ condition, isOpen, onClose }) => {
+  
+
+  if (!isOpen || !condition) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+        onClick={onClose}
+      ></div>
+
+      {/* Modal */}
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+          {/* Header */}
+          <div className="sticky top-0 bg-gradient-to-r from-green-600 to-blue-600 px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <AlertCircle className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  {condition.name}
+                </h2>
+                <p className="text-green-100 text-sm">
+                  Medical Condition Details
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)]">
+            {/* Description */}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Heart className="w-5 h-5 text-green-600" />
+                Description
+              </h3>
+              <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-green-500">
+                <p className="text-gray-700 leading-relaxed">
+                  {condition.description}
+                </p>
+              </div>
+            </div>
+
+            {/* Symptoms Section */}
+            {condition.symptoms && condition.symptoms.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-600" />
+                  Associated Symptoms
+                  <span className="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full">
+                    {condition.symptoms.length}
+                  </span>
+                </h3>
+
+                <div className="grid gap-3">
+                  {condition.symptoms.map((symptom) => (
+                    <div
+                      key={symptom.id}
+                      className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-medium text-gray-900 flex-1">
+                          {symptom.name}
+                        </h4>
+                      </div>
+                      {symptom.description && (
+                        <p className="text-sm text-gray-600 leading-relaxed">
+                          {symptom.description}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No Symptoms */}
+            {(!condition.symptoms || condition.symptoms.length === 0) && (
+              <div className="text-center py-8">
+                <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">
+                  No symptoms information available for this condition.
+                </p>
+              </div>
+            )}
+
+            {/* Footer Info */}
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <span>Condition ID: {condition.id}</span>
+                <span className="bg-green-50 text-green-700 px-2 py-1 rounded">
+                  Medical Database
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const ConditionsList: React.FC = () => {
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [filteredConditions, setFilteredConditions] = useState<Condition[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [selectedCondition, setSelectedCondition] = useState<Condition | null>(null);
+  const [selectedCondition, setSelectedCondition] = useState<Condition | null>(
+    null
+  );
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     loadConditions();
@@ -59,29 +186,13 @@ const ConditionsList: React.FC = () => {
   };
 
   const handleConditionClick = (condition: Condition) => {
-    setSelectedCondition(selectedCondition?.id === condition.id ? null : condition);
+    setSelectedCondition(condition);
+    setIsModalOpen(true);
   };
 
-  const getSeverityColor = (severity: number) => {
-    switch (severity) {
-      case 5: return "text-red-600 bg-red-100";
-      case 4: return "text-orange-600 bg-orange-100";
-      case 3: return "text-yellow-600 bg-yellow-100";
-      case 2: return "text-blue-600 bg-blue-100";
-      case 1: return "text-green-600 bg-green-100";
-      default: return "text-gray-600 bg-gray-100";
-    }
-  };
-
-  const getSeverityLabel = (severity: number) => {
-    switch (severity) {
-      case 5: return "Critical";
-      case 4: return "Severe";
-      case 3: return "Moderate";
-      case 2: return "Mild";
-      case 1: return "Minor";
-      default: return "Unknown";
-    }
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedCondition(null);
   };
 
   return (
@@ -92,8 +203,8 @@ const ConditionsList: React.FC = () => {
           Medical Conditions Database
         </h1>
         <p className="text-sm sm:text-base md:text-lg text-gray-700 max-w-2xl mx-auto font-medium">
-          Browse and search through our comprehensive database of medical conditions 
-          with detailed descriptions and information.
+          Browse and search through our comprehensive database of medical
+          conditions with detailed descriptions and information.
         </p>
       </div>
 
@@ -121,7 +232,8 @@ const ConditionsList: React.FC = () => {
 
         {searchTerm && (
           <div className="mt-2 text-sm text-gray-600">
-            Found {filteredConditions.length} condition(s) matching "{searchTerm}"
+            Found {filteredConditions.length} condition(s) matching "
+            {searchTerm}"
           </div>
         )}
       </div>
@@ -141,13 +253,7 @@ const ConditionsList: React.FC = () => {
             <div
               key={condition.id}
               onClick={() => handleConditionClick(condition)}
-              className={`
-                bg-white rounded-lg shadow-md border hover:shadow-lg transition-all cursor-pointer p-4
-                ${selectedCondition?.id === condition.id 
-                  ? 'border-green-500 ring-2 ring-green-200 bg-green-50' 
-                  : 'border-gray-200 hover:border-green-300'
-                }
-              `}
+              className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg hover:border-green-300 transition-all cursor-pointer p-4 transform hover:scale-105"
             >
               <div className="flex items-start gap-3">
                 <div className="flex-shrink-0 p-2 bg-green-100 rounded-lg">
@@ -160,67 +266,20 @@ const ConditionsList: React.FC = () => {
                   <p className="text-xs text-gray-600 line-clamp-2 mb-2">
                     {condition.description}
                   </p>
-                  <div className="flex items-center gap-2 text-xs">
-                    <Activity className="w-3 h-3 text-green-600" />
-                    <span className="text-green-700 font-medium">
-                      {condition.symptoms?.length || 0} symptom{condition.symptoms?.length !== 1 ? 's' : ''}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Activity className="w-3 h-3 text-green-600" />
+                      <span className="text-green-700 font-medium">
+                        {condition.symptoms?.length || 0} symptom
+                        {condition.symptoms?.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded font-medium">
+                      Click to view
                     </span>
                   </div>
                 </div>
               </div>
-
-              {/* Expanded Details */}
-              {selectedCondition?.id === condition.id && (
-                <div className="mt-4 pt-4 border-t border-green-200">
-                  <div className="space-y-3">
-                    <div>
-                      <h4 className="text-sm font-semibold text-green-800">Full Description:</h4>
-                      <p className="text-sm text-gray-700 mt-1 leading-relaxed">
-                        {condition.description}
-                      </p>
-                    </div>
-                    
-                    {/* Symptoms Section */}
-                    {condition.symptoms && condition.symptoms.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
-                          <Activity className="w-4 h-4" />
-                          Associated Symptoms ({condition.symptoms.length})
-                        </h4>
-                        <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
-                          {condition.symptoms.map((symptom) => (
-                            <div 
-                              key={symptom.id} 
-                              className="flex items-start justify-between p-2 bg-white rounded border border-gray-200"
-                            >
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium text-gray-900">
-                                    {symptom.name}
-                                  </span>
-                                  <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium ${getSeverityColor(symptom.severity)}`}>
-                                    {getSeverityLabel(symptom.severity)}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                  {symptom.description}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center justify-between text-xs text-green-600 pt-2 border-t border-green-100">
-                      <span>Condition ID: {condition.id}</span>
-                      <span className="bg-green-100 px-2 py-1 rounded">
-                        Click to collapse
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           ))}
         </div>
@@ -234,10 +293,9 @@ const ConditionsList: React.FC = () => {
             No conditions found
           </h3>
           <p className="text-gray-600">
-            {searchTerm 
+            {searchTerm
               ? `No conditions match your search for "${searchTerm}"`
-              : "No conditions available in the database"
-            }
+              : "No conditions available in the database"}
           </p>
         </div>
       )}
@@ -248,12 +306,20 @@ const ConditionsList: React.FC = () => {
           <div className="inline-flex items-center gap-2 bg-white/80 px-4 py-2 rounded-full shadow-sm border border-green-200">
             <Heart className="w-4 h-4 text-green-600" />
             <span className="text-sm font-medium text-green-800">
-              {filteredConditions.length} medical condition{filteredConditions.length !== 1 ? 's' : ''} 
-              {searchTerm ? ` found` : ' available'}
+              {filteredConditions.length} medical condition
+              {filteredConditions.length !== 1 ? "s" : ""}
+              {searchTerm ? ` found` : " available"}
             </span>
           </div>
         </div>
       )}
+
+      {/* Modal */}
+      <ConditionModal
+        condition={selectedCondition}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 };

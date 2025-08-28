@@ -11,33 +11,33 @@ const dbConfig = {
 
 async function createTables() {
   let connection;
-  
+
   try {
     connection = await mysql.createConnection(dbConfig);
     console.log("Connected to database");
 
-    // Create drugs table (matches data structure)
+    // Create drug table (matches schema structure)
     await connection.execute(`
-      CREATE TABLE IF NOT EXISTS drugs (
-        id INT PRIMARY KEY,
-        generic_name VARCHAR(255) NOT NULL,
+      CREATE TABLE IF NOT EXISTS drug (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        generic_name VARCHAR(255) NOT NULL UNIQUE,
+        brand_name_1 VARCHAR(255),
+        manufacturer_1 VARCHAR(255),
+        brand_name_2 VARCHAR(255),
+        manufacturer_2 VARCHAR(255),
         drug_class VARCHAR(255) NOT NULL,
-        brands JSON,
-        manufacturers JSON,
-        description TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       )
     `);
-    console.log("Created drugs table");
+    console.log("Created drug table");
 
     // Create conditions table
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS conditions (
-        id INT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL UNIQUE,
         description TEXT,
-        severity_level INT DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -46,112 +46,156 @@ async function createTables() {
     // Create symptoms table
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS symptoms (
-        id INT PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        severity INT DEFAULT 1,
-        relevance_score INT,
+        symptom_id INT PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL UNIQUE,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log("Created symptoms table");
 
+    // Create clinicalNote table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS clinicalNote (
+        clinical_note_id INT PRIMARY KEY AUTO_INCREMENT,
+        clinical_note TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log("Created clinicalNote table");
+
+    // Create alternativeDrugs table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS alternativeDrugs (
+        alternative_id INT PRIMARY KEY AUTO_INCREMENT,
+        replaced_drug_id INT NOT NULL,
+        alternative_drug_id INT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (replaced_drug_id) REFERENCES drug(id) ON DELETE CASCADE,
+        FOREIGN KEY (alternative_drug_id) REFERENCES drug(id) ON DELETE CASCADE
+      )
+    `);
+    console.log("Created alternativeDrugs table");
+
     // Create interactions table
     await connection.execute(`
       CREATE TABLE IF NOT EXISTS interactions (
-        id INT PRIMARY KEY,
+        id INT PRIMARY KEY AUTO_INCREMENT,
         drug1_id INT NOT NULL,
         drug2_id INT NOT NULL,
-        drug1_name VARCHAR(255) NOT NULL,
-        drug2_name VARCHAR(255) NOT NULL,
         interaction_type VARCHAR(50) NOT NULL,
         severity_score INT NOT NULL,
-        description TEXT NOT NULL,
-        mechanism TEXT,
+        interaction_description TEXT NOT NULL,
+        clinical_note_id INT,
+        alternative_id INT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (drug1_id) REFERENCES drugs(id) ON DELETE CASCADE,
-        FOREIGN KEY (drug2_id) REFERENCES drugs(id) ON DELETE CASCADE
+        FOREIGN KEY (drug1_id) REFERENCES drug(id) ON DELETE CASCADE,
+        FOREIGN KEY (drug2_id) REFERENCES drug(id) ON DELETE CASCADE,
+        FOREIGN KEY (clinical_note_id) REFERENCES clinicalNote(clinical_note_id) ON DELETE SET NULL,
+        FOREIGN KEY (alternative_id) REFERENCES alternativeDrugs(alternative_id) ON DELETE SET NULL
       )
     `);
     console.log("Created interactions table");
 
-    // Create clinical_notes table
+    // Create conditionInteraction table
     await connection.execute(`
-      CREATE TABLE IF NOT EXISTS clinical_notes (
-        id INT PRIMARY KEY,
+      CREATE TABLE IF NOT EXISTS conditionInteraction (
+        map_id INT PRIMARY KEY AUTO_INCREMENT,
         interaction_id INT NOT NULL,
-        note_type VARCHAR(50) DEFAULT 'general',
-        clinical_note TEXT NOT NULL,
-        recommendation TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (interaction_id) REFERENCES interactions(id) ON DELETE CASCADE
-      )
-    `);
-    console.log("Created clinical_notes table");
-
-    // Create alternative_drugs table
-    await connection.execute(`
-      CREATE TABLE IF NOT EXISTS alternative_drugs (
-        id INT PRIMARY KEY,
-        interaction_id INT NOT NULL,
-        original_drug_id INT NOT NULL,
-        alternative_drug_id INT NOT NULL,
-        reason TEXT,
-        safety_note TEXT,
+        condition_id INT NOT NULL,
+        adjusted_interaction_type VARCHAR(50) NOT NULL,
+        severity_score INT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (interaction_id) REFERENCES interactions(id) ON DELETE CASCADE,
-        FOREIGN KEY (original_drug_id) REFERENCES drugs(id) ON DELETE CASCADE,
-        FOREIGN KEY (alternative_drug_id) REFERENCES drugs(id) ON DELETE CASCADE
-      )
-    `);
-    console.log("Created alternative_drugs table");
-
-    // Create condition_interactions table
-    await connection.execute(`
-      CREATE TABLE IF NOT EXISTS condition_interactions (
-        id INT PRIMARY KEY,
-        condition_id INT NOT NULL,
-        interaction_id INT NOT NULL,
-        condition_note TEXT,
-        condition_adjusted BOOLEAN DEFAULT FALSE,
-        severity_modifier INT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (condition_id) REFERENCES conditions(id) ON DELETE CASCADE,
-        FOREIGN KEY (interaction_id) REFERENCES interactions(id) ON DELETE CASCADE
-      )
-    `);
-    console.log("Created condition_interactions table");
-
-    // Create symptom_conditions table (mapping table)
-    await connection.execute(`
-      CREATE TABLE IF NOT EXISTS symptom_conditions (
-        id INT PRIMARY KEY,
-        symptom_id INT NOT NULL,
-        condition_id INT NOT NULL,
-        relevance_score INT DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (symptom_id) REFERENCES symptoms(id) ON DELETE CASCADE,
         FOREIGN KEY (condition_id) REFERENCES conditions(id) ON DELETE CASCADE
       )
     `);
-    console.log("Created symptom_conditions table");
+    console.log("Created conditionInteraction table");
 
-    // Create useful indexes
-    await connection.execute("CREATE INDEX IF NOT EXISTS idx_drug_generic_name ON drugs(generic_name)");
-    await connection.execute("CREATE INDEX IF NOT EXISTS idx_interaction_drugs ON interactions(drug1_id, drug2_id)");
-    await connection.execute("CREATE INDEX IF NOT EXISTS idx_condition_name ON conditions(name)");
-    await connection.execute("CREATE INDEX IF NOT EXISTS idx_symptom_name ON symptoms(name)");
+    // Create symptomToconditions table (mapping table)
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS symptomToconditions (
+        map_id INT PRIMARY KEY AUTO_INCREMENT,
+        condition_id INT NOT NULL,
+        symptom_id INT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (condition_id) REFERENCES conditions(id) ON DELETE CASCADE,
+        FOREIGN KEY (symptom_id) REFERENCES symptoms(symptom_id) ON DELETE CASCADE
+      )
+    `);
+    console.log("Created symptomToconditions table");
+
+    // Create ConditionWithSymptoms view
+    await connection.execute(`
+      CREATE VIEW IF NOT EXISTS ConditionWithSymptoms AS
+      SELECT
+        c.id,
+        c.name as condition_name,
+        c.description,
+        GROUP_CONCAT(s.name) as symptoms
+      FROM
+        conditions c
+        LEFT JOIN symptomToconditions stc ON c.id = stc.condition_id
+        LEFT JOIN symptoms s ON stc.symptom_id = s.symptom_id
+      GROUP BY
+        c.id,
+        c.name,
+        c.description
+    `);
+    console.log("Created ConditionWithSymptoms view");
+
+    // Create indexes for optimized searching
+    await connection.execute(
+      "CREATE INDEX IF NOT EXISTS idx_drug_generic_name ON drug(generic_name)"
+    );
+    await connection.execute(
+      "CREATE INDEX IF NOT EXISTS idx_drug_brand_name_1 ON drug(brand_name_1)"
+    );
+    await connection.execute(
+      "CREATE INDEX IF NOT EXISTS idx_drug_brand_name_2 ON drug(brand_name_2)"
+    );
+    await connection.execute(
+      "CREATE INDEX IF NOT EXISTS idx_conditions_name ON conditions(name)"
+    );
+    await connection.execute(
+      "CREATE INDEX IF NOT EXISTS idx_interaction_drugs ON interactions(drug1_id, drug2_id)"
+    );
+    await connection.execute(
+      "CREATE INDEX IF NOT EXISTS idx_condition_interaction ON conditionInteraction(interaction_id, condition_id)"
+    );
     console.log("Created indexes");
 
-    console.log("\n✅ All tables created successfully!");
+    console.log("\n✅ All tables, views, and indexes created successfully!");
 
+    // Verify table creation
+    console.log("\n📊 Table verification:");
+    const [tables] = await connection.execute("SHOW TABLES");
+    console.log(
+      "Created tables:",
+      tables.map((t) => Object.values(t)[0])
+    );
+
+    // Show table structures for verification
+    console.log("\n📋 Sample table structures:");
+    const [drugStructure] = await connection.execute("DESCRIBE drug");
+    console.log(
+      "Drug table structure:",
+      drugStructure.map((col) => `${col.Field} (${col.Type})`)
+    );
+
+    const [interactionStructure] = await connection.execute(
+      "DESCRIBE interactions"
+    );
+    console.log(
+      "Interactions table structure:",
+      interactionStructure.map((col) => `${col.Field} (${col.Type})`)
+    );
   } catch (error) {
     console.error("Error creating tables:", error);
     process.exit(1);
   } finally {
     if (connection) {
       await connection.end();
-      console.log("Database connection closed");
+      console.log("\nDatabase connection closed");
     }
   }
 }

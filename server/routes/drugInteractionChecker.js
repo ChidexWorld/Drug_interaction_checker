@@ -44,17 +44,17 @@ const drugInteractionCheckSchema = Joi.object({
 router.get("/search-drugs", async (req, res, next) => {
   try {
     const { query, limit = 20 } = req.query;
-    
+
     if (!query || query.length < 2) {
       return res.status(400).json({
         error: "Validation Error",
-        message: "Query must be at least 2 characters long"
+        message: "Query must be at least 2 characters long",
       });
     }
 
     const results = await searchDrug(query);
     const limitedResults = results.slice(0, parseInt(limit));
-    
+
     // Get detailed information for each drug
     const drugsWithDetails = await Promise.all(
       limitedResults.map(async (drug) => {
@@ -66,9 +66,8 @@ router.get("/search-drugs", async (req, res, next) => {
     res.json({
       query,
       results: drugsWithDetails,
-      total: drugsWithDetails.length
+      total: drugsWithDetails.length,
     });
-
   } catch (error) {
     console.error("Error searching drugs:", error);
     next({ type: "database", message: error.message });
@@ -97,40 +96,39 @@ router.get("/search-drugs", async (req, res, next) => {
 router.get("/drug-details", async (req, res, next) => {
   try {
     const { name } = req.query;
-    
+
     if (!name || name.trim().length === 0) {
       return res.status(400).json({
         error: "Validation Error",
-        message: "Drug name is required"
+        message: "Drug name is required",
       });
     }
 
     const drugResults = await searchDrug(name.trim());
-    
+
     if (drugResults.length === 0) {
       return res.status(404).json({
         error: "Not Found",
-        message: `No drug found matching "${name}"`
+        message: `No drug found matching "${name}"`,
       });
     }
 
     // Get the best match (first result)
     const selectedDrug = drugResults[0];
     const drugDetails = await getDrugDetails(selectedDrug.id);
-    
+
     if (!drugDetails) {
       return res.status(404).json({
         error: "Not Found",
-        message: "Drug details not found"
+        message: "Drug details not found",
       });
     }
 
     res.json({
       search_term: name,
       drug: drugDetails,
-      match_quality: selectedDrug.relevance_score === 1 ? "exact" : "partial"
+      match_quality: selectedDrug.relevance_score === 1 ? "exact" : "partial",
     });
-
   } catch (error) {
     console.error("Error getting drug details:", error);
     next({ type: "database", message: error.message });
@@ -156,58 +154,55 @@ router.get("/drug-details", async (req, res, next) => {
 router.get("/conditions", async (req, res, next) => {
   try {
     const { search } = req.query;
-    
+
     let query = `
       SELECT 
         id,
         name,
         description
-      FROM \`Condition\`
+      FROM conditions
     `;
-    
+
     let params = [];
-    
+
     if (search && search.trim().length > 0) {
       query += ` WHERE name LIKE ? OR description LIKE ?`;
       const searchTerm = `%${search.trim()}%`;
       params = [searchTerm, searchTerm];
     }
-    
-    query += ` ORDER BY name`;
-    
+
+    query += ` ORDER BY id ASC`;
+
     const conditions = await database.all(query, params);
-    
+
     // Get symptoms for each condition
     const conditionsWithSymptoms = await Promise.all(
       conditions.map(async (condition) => {
         const symptoms = await database.all(
           `
           SELECT DISTINCT
-            s.id,
-            s.name,
-            s.description,
-            s.severity
+            s.symptom_id,
+            s.name
           FROM symptoms s
-          JOIN symptom_conditions stc ON s.id = stc.symptom_id
+          JOIN symptomToconditions stc ON s.symptom_id = stc.symptom_id
           WHERE stc.condition_id = ?
-          ORDER BY s.severity DESC, s.name
+          ORDER BY s.name
           `,
           [condition.id]
         );
-        
+
         return {
           ...condition,
-          symptoms: symptoms
+          symptoms: symptoms,
         };
       })
     );
-    
+
     res.json({
       search_term: search || null,
       conditions: conditionsWithSymptoms,
-      total: conditionsWithSymptoms.length
+      total: conditionsWithSymptoms.length,
     });
-
   } catch (error) {
     console.error("Error getting conditions:", error);
     next({ type: "database", message: error.message });
@@ -236,11 +231,11 @@ router.get("/conditions", async (req, res, next) => {
 router.get("/condition-details", async (req, res, next) => {
   try {
     const { name } = req.query;
-    
+
     if (!name || name.trim().length === 0) {
       return res.status(400).json({
         error: "Validation Error",
-        message: "Condition name is required"
+        message: "Condition name is required",
       });
     }
 
@@ -250,16 +245,16 @@ router.get("/condition-details", async (req, res, next) => {
         id,
         name,
         description
-      FROM \`Condition\`
+      FROM conditions
       WHERE name = ?
       `,
       [name.trim()]
     );
-    
+
     if (!condition) {
       return res.status(404).json({
         error: "Not Found",
-        message: `No condition found matching "${name}"`
+        message: `No condition found matching "${name}"`,
       });
     }
 
@@ -267,14 +262,12 @@ router.get("/condition-details", async (req, res, next) => {
     const symptoms = await database.all(
       `
       SELECT DISTINCT
-        s.id,
-        s.name,
-        s.description,
-        s.severity
+        s.symptom_id,
+        s.name
       FROM symptoms s
-      JOIN Symptom_To_Condition stc ON s.id = stc.symptom_id
+      JOIN symptomToconditions stc ON s.symptom_id = stc.symptom_id
       WHERE stc.condition_id = ?
-      ORDER BY s.severity DESC, s.name
+      ORDER BY s.name
       `,
       [condition.id]
     );
@@ -286,11 +279,11 @@ router.get("/condition-details", async (req, res, next) => {
         c.id,
         c.name,
         COUNT(DISTINCT stc.symptom_id) as shared_symptoms
-      FROM \`Condition\` c
-      JOIN Symptom_To_Condition stc ON c.id = stc.condition_id
+      FROM conditions c
+      JOIN symptomToconditions stc ON c.id = stc.condition_id
       WHERE stc.symptom_id IN (
         SELECT symptom_id 
-        FROM symptom_conditions 
+        FROM symptomToconditions 
         WHERE condition_id = ?
       )
       AND c.id != ?
@@ -308,10 +301,9 @@ router.get("/condition-details", async (req, res, next) => {
         ...condition,
         symptoms: symptoms,
         symptom_count: symptoms.length,
-        related_conditions: relatedConditions
-      }
+        related_conditions: relatedConditions,
+      },
     });
-
   } catch (error) {
     console.error("Error getting condition details:", error);
     next({ type: "database", message: error.message });
@@ -395,10 +387,10 @@ router.post("/search-and-check", async (req, res, next) => {
     // Step 4: Get clinical notes if interaction exists
     let clinicalNotes = [];
     let alternativeDrugs = [];
-    
+
     if (interactionResult) {
       clinicalNotes = await getClinicalNotes(interactionResult.id);
-      
+
       // Step 5: Get alternative drugs if interaction is Major or Contraindicated
       if (interactionResult.severity_score >= 3) {
         alternativeDrugs = await getAlternativeDrugs(interactionResult.id);
@@ -412,29 +404,33 @@ router.post("/search-and-check", async (req, res, next) => {
         drug1: drug1Details,
         drug2: drug2Details,
       },
-      interaction: interactionResult ? {
-        exists: true,
-        interaction_type: interactionResult.interaction_type,
-        severity_score: interactionResult.severity_score,
-        description: interactionResult.description,
-        mechanism: interactionResult.mechanism,
-        risk_level: getRiskLevel(interactionResult.severity_score),
-        risk_color: getRiskColor(interactionResult.severity_score),
-        condition_adjusted: !!interactionResult.condition_adjusted,
-        condition_note: interactionResult.condition_note || null,
-      } : {
-        exists: false,
-        message: "No known interaction between these drugs",
-        risk_level: "No Known Interactions",
-        risk_color: "#6c757d",
-      },
+      interaction: interactionResult
+        ? {
+            exists: true,
+            interaction_type: interactionResult.interaction_type,
+            severity_score: interactionResult.severity_score,
+            description: interactionResult.interaction_description,
+            mechanism: interactionResult.interaction_description, // Use description as mechanism
+            risk_level: getRiskLevel(interactionResult.severity_score),
+            risk_color: getRiskColor(interactionResult.severity_score),
+            condition_adjusted: !!interactionResult.condition_adjusted,
+            condition_note: interactionResult.condition_note || null,
+          }
+        : {
+            exists: false,
+            message: "No known interaction between these drugs",
+            risk_level: "No Known Interactions",
+            risk_color: "#6c757d",
+          },
       clinical_notes: clinicalNotes,
       alternative_drugs: alternativeDrugs,
-      recommendations: generateRecommendations(interactionResult, alternativeDrugs),
+      recommendations: generateRecommendations(
+        interactionResult,
+        alternativeDrugs
+      ),
     };
 
     res.json(response);
-
   } catch (error) {
     console.error("Error in drug interaction checker:", error);
     next({ type: "database", message: error.message });
@@ -446,25 +442,28 @@ router.post("/search-and-check", async (req, res, next) => {
  */
 async function searchDrug(searchTerm) {
   const term = `%${searchTerm.toLowerCase()}%`;
-  
+
   const results = await database.all(
     `
     SELECT DISTINCT
         d.id,
         d.generic_name,
         d.drug_class,
-        d.description,
         CASE 
             WHEN LOWER(d.generic_name) LIKE ? THEN 1
-            ELSE 2
+            WHEN LOWER(d.brand_name_1) LIKE ? THEN 2
+            WHEN LOWER(d.brand_name_2) LIKE ? THEN 2
+            ELSE 3
         END as relevance_score
-    FROM drugs d
+    FROM drug d
     WHERE 
-        LOWER(d.generic_name) LIKE ?
+        LOWER(d.generic_name) LIKE ? OR
+        LOWER(d.brand_name_1) LIKE ? OR
+        LOWER(d.brand_name_2) LIKE ?
     ORDER BY relevance_score, d.generic_name
-    LIMIT 5
+    LIMIT 20
     `,
-    [term]
+    [term, term, term, term, term, term]
   );
 
   return results;
@@ -480,8 +479,11 @@ async function getDrugDetails(drugId) {
         d.id,
         d.generic_name,
         d.drug_class,
-        d.description
-    FROM drugs d
+        d.brand_name_1,
+        d.manufacturer_1,
+        d.brand_name_2,
+        d.manufacturer_2
+    FROM drug d
     WHERE d.id = ?
     `,
     [drugId]
@@ -489,30 +491,29 @@ async function getDrugDetails(drugId) {
 
   if (!drug) return null;
 
-  // Parse brands and manufacturers from JSON
-  let brandsData = [];
-  try {
-    const brands = JSON.parse(drug.brands || '[]');
-    const manufacturers = JSON.parse(drug.manufacturers || '[]');
-    brandsData = brands.map((brand, index) => ({
-      brand_name: brand,
-      manufacturer: manufacturers[index] || 'Unknown'
-    }));
-  } catch (e) {
-    brandsData = [];
+  // Create brands and manufacturers arrays
+  const brands = [];
+  const manufacturers = [];
+
+  if (drug.brand_name_1) {
+    brands.push(drug.brand_name_1);
+    manufacturers.push(drug.manufacturer_1 || "Unknown");
   }
 
-  // Extract brands and manufacturers arrays that correspond by index (no duplicates)
-  const brands = brandsData.map(b => b.brand_name);
-  const manufacturers = brandsData.map(b => b.manufacturer);
+  if (drug.brand_name_2) {
+    brands.push(drug.brand_name_2);
+    manufacturers.push(drug.manufacturer_2 || "Unknown");
+  }
 
   return {
-    ...drug,
+    id: drug.id,
+    generic_name: drug.generic_name,
+    drug_class: drug.drug_class,
     brands: brands,
     manufacturers: manufacturers,
+    description: `${drug.drug_class} medication`,
   };
 }
-
 
 /**
  * Check for interaction between two drugs
@@ -527,8 +528,9 @@ async function checkDrugInteraction(drug1Id, drug2Id, conditionNames = []) {
         i.drug2_id,
         i.interaction_type,
         i.severity_score,
-        i.description,
-        i.mechanism
+        i.interaction_description,
+        i.clinical_note_id,
+        i.alternative_id
     FROM interactions i
     WHERE 
         (i.drug1_id = ? AND i.drug2_id = ?) OR
@@ -544,27 +546,27 @@ async function checkDrugInteraction(drug1Id, drug2Id, conditionNames = []) {
     for (const conditionName of conditionNames) {
       // First get the condition ID from condition name
       const condition = await database.get(
-        `SELECT id FROM \`Condition\` WHERE name = ?`,
+        `SELECT id FROM conditions WHERE name = ?`,
         [conditionName]
       );
-      
+
       if (condition) {
         const conditionAdjustment = await database.get(
           `
           SELECT 
-              adjusted_severity_score,
               adjusted_interaction_type,
-              condition_specific_note
-          FROM condition_interactions
+              severity_score
+          FROM conditionInteraction
           WHERE interaction_id = ? AND condition_id = ?
           `,
           [interaction.id, condition.id]
         );
 
         if (conditionAdjustment) {
-          interaction.severity_score = conditionAdjustment.adjusted_severity_score;
-          interaction.interaction_type = conditionAdjustment.adjusted_interaction_type;
-          interaction.condition_note = conditionAdjustment.condition_specific_note;
+          interaction.severity_score = conditionAdjustment.severity_score;
+          interaction.interaction_type =
+            conditionAdjustment.adjusted_interaction_type;
+          interaction.condition_note = `Adjusted for ${conditionName} condition`;
           interaction.condition_adjusted = true;
           break; // Use first matching condition adjustment
         }
@@ -579,43 +581,87 @@ async function checkDrugInteraction(drug1Id, drug2Id, conditionNames = []) {
  * Get clinical notes for an interaction
  */
 async function getClinicalNotes(interactionId) {
-  return await database.all(
-    `
-    SELECT 
-        id,
-        clinical_note,
-        note_type,
-        recommendation
-    FROM clinical_notes
-    WHERE interaction_id = ?
-    ORDER BY id
-    `,
+  // Get the clinical note ID from the interaction
+  const interaction = await database.get(
+    `SELECT clinical_note_id FROM interactions WHERE id = ?`,
     [interactionId]
   );
+
+  if (!interaction || !interaction.clinical_note_id) return [];
+
+  const clinicalNote = await database.get(
+    `
+    SELECT 
+        clinical_note_id,
+        clinical_note
+    FROM clinicalNote
+    WHERE clinical_note_id = ?
+    `,
+    [interaction.clinical_note_id]
+  );
+
+  return clinicalNote
+    ? [
+        {
+          id: clinicalNote.clinical_note_id,
+          clinical_note: clinicalNote.clinical_note,
+          note_type: "general",
+          recommendation: "Follow clinical guidance and monitor closely",
+        },
+      ]
+    : [];
 }
 
 /**
  * Get alternative drugs for major/contraindicated interactions
  */
 async function getAlternativeDrugs(interactionId) {
-  return await database.all(
-    `
-    SELECT 
-        ad.original_drug_id,
-        ad.alternative_drug_id,
-        ad.reason,
-        ad.safety_note,
-        d_orig.generic_name as original_drug_name,
-        d_alt.generic_name as alternative_name,
-        d_alt.drug_class as alternative_class
-    FROM alternative_drugs ad
-    JOIN Drug d_orig ON ad.original_drug_id = d_orig.id
-    JOIN Drug d_alt ON ad.alternative_drug_id = d_alt.id
-    WHERE ad.interaction_id = ?
-    ORDER BY d_alt.generic_name
-    `,
+  // Get the alternative ID from the interaction
+  const interaction = await database.get(
+    `SELECT alternative_id FROM interactions WHERE id = ?`,
     [interactionId]
   );
+
+  if (!interaction || !interaction.alternative_id) return [];
+
+  const alternative = await database.get(
+    `
+    SELECT 
+        ad.alternative_id,
+        ad.replaced_drug_id,
+        ad.alternative_drug_id
+    FROM alternativeDrugs ad
+    WHERE ad.alternative_id = ?
+    `,
+    [interaction.alternative_id]
+  );
+
+  if (!alternative) return [];
+
+  // Get drug details for both original and alternative
+  const originalDrug = await database.get(
+    `SELECT id, generic_name, drug_class FROM drug WHERE id = ?`,
+    [alternative.replaced_drug_id]
+  );
+
+  const alternativeDrug = await database.get(
+    `SELECT id, generic_name, drug_class FROM drug WHERE id = ?`,
+    [alternative.alternative_drug_id]
+  );
+
+  if (!originalDrug || !alternativeDrug) return [];
+
+  return [
+    {
+      original_drug_id: alternative.replaced_drug_id,
+      alternative_drug_id: alternative.alternative_drug_id,
+      original_drug_name: originalDrug.generic_name,
+      alternative_name: alternativeDrug.generic_name,
+      alternative_class: alternativeDrug.drug_class,
+      reason: `${alternativeDrug.generic_name} may be a safer alternative to ${originalDrug.generic_name}`,
+      safety_note: "Monitor for effectiveness and adverse effects",
+    },
+  ];
 }
 
 /**
@@ -637,27 +683,30 @@ function generateRecommendations(interaction, alternativeDrugs) {
     case 4: // Contraindicated
       recommendations.push({
         type: "contraindicated",
-        message: "This combination is contraindicated and should not be used together.",
+        message:
+          "This combination is contraindicated and should not be used together.",
         priority: "critical",
       });
       break;
-    
+
     case 3: // Major
       recommendations.push({
         type: "major",
-        message: "Major interaction detected. Use with extreme caution and close monitoring.",
+        message:
+          "Major interaction detected. Use with extreme caution and close monitoring.",
         priority: "high",
       });
       break;
-    
+
     case 2: // Moderate
       recommendations.push({
         type: "moderate",
-        message: "Moderate interaction. Monitor patient closely for adverse effects.",
+        message:
+          "Moderate interaction. Monitor patient closely for adverse effects.",
         priority: "medium",
       });
       break;
-    
+
     case 1: // Minor
       recommendations.push({
         type: "minor",

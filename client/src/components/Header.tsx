@@ -35,11 +35,11 @@ const Header: React.FC = () => {
           {/* Logo and Title (mobile: only logo, desktop: logo + text) */}
           <div className="flex items-center">
             <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl shadow-lg">
-              <Shield className="w-7 h-7 sm:w-8 sm:h-8 text-white drop-shadow" />
+              <Stethoscope className="w-7 h-7 sm:w-8 sm:h-8 text-white drop-shadow" />
             </div>
             <div className="hidden sm:block ml-3">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-purple-600 to-pink-500 drop-shadow-lg">
-                Precious
+                MediCheck
               </h1>
               <p className="text-xs md:text-sm text-gray-500 font-medium tracking-wide">
                 Medical Information System
@@ -87,10 +87,10 @@ const Header: React.FC = () => {
             <div className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 shadow-xl rounded-b-3xl p-6 pt-8 w-full max-w-xs mx-auto mt-8 animate-slide-down">
               <div className="flex flex-col items-center mb-6">
                 <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl shadow-lg mb-2">
-                  <Shield className="w-8 h-8 text-white drop-shadow" />
+                  <Stethoscope className="w-8 h-8 text-white drop-shadow" />
                 </div>
                 <h1 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-purple-600 to-pink-500 drop-shadow-lg">
-                  Precious
+                  MediCheck
                 </h1>
               </div>
               <nav className="flex flex-col space-y-3">

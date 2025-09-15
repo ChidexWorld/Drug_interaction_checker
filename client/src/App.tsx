@@ -21,6 +21,7 @@ function AppContent() {
           <Route path="/drug-info" element={<DrugInteractionChecker />} />
           <Route path="/interaction-checker" element={<DrugInteractionChecker2 />} />
           <Route path="/conditions" element={<ConditionsList />} />
+          <Route path="*" element={<LandingPage />} />
         </Routes>
       </main>
       <ToastContainer

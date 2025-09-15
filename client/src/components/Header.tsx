@@ -8,13 +8,13 @@ const Header: React.FC = () => {
   const navigation = [
     {
       name: "Drug Information",
-      href: "/",
+      href: "/drug-info",
       icon: Database,
       description: "Search drug information",
     },
     {
       name: "Drug Interactions",
-      href: "/drug-interactions",
+      href: "/interaction-checker",
       icon: Shield,
       description: "Check drug interactions",
     },

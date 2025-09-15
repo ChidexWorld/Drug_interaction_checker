@@ -515,11 +515,14 @@ async function getDrugDetails(drugId) {
   };
 }
 
+  /**
+   * Check for interaction between two drugs
+   */
 /**
  * Check for interaction between two drugs
  */
 async function checkDrugInteraction(drug1Id, drug2Id, conditionNames = []) {
-  // Check for interaction (both directions)
+  // Step 1: Get base interaction (both directions)
   let interaction = await database.get(
     `
     SELECT 
@@ -541,36 +544,29 @@ async function checkDrugInteraction(drug1Id, drug2Id, conditionNames = []) {
 
   if (!interaction) return null;
 
-  // Check for condition-specific adjustments
+  // Step 2: If conditions exist, try to fetch adjustment in one query
   if (conditionNames.length > 0) {
-    for (const conditionName of conditionNames) {
-      // First get the condition ID from condition name
-      const condition = await database.get(
-        `SELECT id FROM conditions WHERE name = ?`,
-        [conditionName]
-      );
+    const placeholders = conditionNames.map(() => "?").join(", ");
+    const conditionAdjustment = await database.get(
+      `
+      SELECT 
+          ci.adjusted_interaction_type,
+          ci.severity_score,
+          c.name AS condition_name
+      FROM conditionInteraction ci
+      JOIN conditions c ON ci.condition_id = c.id
+      WHERE ci.interaction_id = ?
+      AND c.name IN (${placeholders})
+      LIMIT 1
+      `,
+      [interaction.id, ...conditionNames]
+    );
 
-      if (condition) {
-        const conditionAdjustment = await database.get(
-          `
-          SELECT 
-              adjusted_interaction_type,
-              severity_score
-          FROM conditionInteraction
-          WHERE interaction_id = ? AND condition_id = ?
-          `,
-          [interaction.id, condition.id]
-        );
-
-        if (conditionAdjustment) {
-          interaction.severity_score = conditionAdjustment.severity_score;
-          interaction.interaction_type =
-            conditionAdjustment.adjusted_interaction_type;
-          interaction.condition_note = `Adjusted for ${conditionName} condition`;
-          interaction.condition_adjusted = true;
-          break; // Use first matching condition adjustment
-        }
-      }
+    if (conditionAdjustment) {
+      interaction.interaction_type = conditionAdjustment.adjusted_interaction_type;
+      interaction.severity_score = conditionAdjustment.severity_score;
+      interaction.condition_note = `Adjusted for ${conditionAdjustment.condition_name} condition`;
+      interaction.condition_adjusted = true;
     }
   }
 

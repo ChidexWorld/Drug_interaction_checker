@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { toast } from "react-toastify";
-import { AlertTriangle, Search, X, Shield, Activity } from "lucide-react";
+import { AlertTriangle, Search, Shield, Activity } from "lucide-react";
 
 import type { Drug } from "../types";
 import { drugInteractionAPI } from "../services/api";
 import LoadingSpinner from "./LoadingSpinner";
+import DrugAutocomplete from "./DrugAutocomplete";
+import ConditionAutocomplete from "./ConditionAutocomplete";
+import CriticalInteractionModal from "./CriticalInteractionModal";
 
 interface InteractionResult {
   search_terms: { drug1: string; drug2: string };
@@ -52,6 +55,13 @@ const DrugInteractionChecker2: React.FC = () => {
   const [conditions, setConditions] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<InteractionResult | null>(null);
+  const [showCriticalModal, setShowCriticalModal] = useState(false);
+  const [criticalModalData, setCriticalModalData] = useState<{
+    severity: number;
+    drug1Name: string;
+    drug2Name: string;
+    description?: string;
+  } | null>(null);
 
   const handleCheckInteractions = async () => {
     if (!drug1.trim() || !drug2.trim()) {
@@ -78,6 +88,17 @@ const DrugInteractionChecker2: React.FC = () => {
         const severity = response.interaction.severity_score || 0;
         const drug1Name = response.drugs.drug1.generic_name;
         const drug2Name = response.drugs.drug2.generic_name;
+
+        // Show critical modal for major and contraindicated interactions
+        if (severity >= 3) {
+          setCriticalModalData({
+            severity,
+            drug1Name,
+            drug2Name,
+            description: response.interaction.description
+          });
+          setShowCriticalModal(true);
+        }
         
         if (severity >= 4) {
           toast.error(`⚠️ CONTRAINDICATED: ${drug1Name} and ${drug2Name} should not be taken together! This combination is dangerous and could cause serious harm.`, {
@@ -85,9 +106,17 @@ const DrugInteractionChecker2: React.FC = () => {
             toastId: 'contraindicated'
           });
         } else if (severity >= 3) {
-          toast.warning(`🚨 MAJOR INTERACTION: ${drug1Name} and ${drug2Name} have a major interaction! Consult your healthcare provider immediately.`, {
+          toast(`🚨 MAJOR INTERACTION: ${drug1Name} and ${drug2Name} have a major interaction! Consult your healthcare provider immediately.`, {
             autoClose: 7000,
-            toastId: 'major'
+            toastId: 'major',
+            style: {
+              background: 'linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)',
+              border: '2px solid #f97316',
+              borderRadius: '8px',
+              color: '#ea580c',
+              fontWeight: '600',
+              boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)'
+            }
           });
         } else if (severity >= 2) {
           toast.warning(`⚠️ MODERATE INTERACTION: ${drug1Name} and ${drug2Name} may interact. Monitor for side effects and consult your doctor.`, {
@@ -95,7 +124,7 @@ const DrugInteractionChecker2: React.FC = () => {
             toastId: 'moderate'
           });
         } else {
-          toast.info(`ℹ️ MINOR INTERACTION: ${drug1Name} and ${drug2Name} have a minor interaction. Be aware of potential mild effects.`, {
+          toast.success(`ℹ️ MINOR INTERACTION: ${drug1Name} and ${drug2Name} have a minor interaction. Be aware of potential mild effects.`, {
             autoClose: 5000,
             toastId: 'minor'
           });
@@ -131,7 +160,7 @@ const DrugInteractionChecker2: React.FC = () => {
       case 2:
         return "border-yellow-500 bg-yellow-50";
       case 1:
-        return "border-blue-500 bg-blue-50";
+        return "border-green-500 bg-green-50";
       default:
         return "border-gray-500 bg-gray-50";
     }
@@ -146,7 +175,7 @@ const DrugInteractionChecker2: React.FC = () => {
       case 2:
         return <AlertTriangle className="w-6 h-6 text-yellow-600" />;
       case 1:
-        return <AlertTriangle className="w-6 h-6 text-blue-600" />;
+        return <AlertTriangle className="w-6 h-6 text-green-600" />;
       default:
         return <Shield className="w-6 h-6 text-gray-600" />;
     }
@@ -182,42 +211,28 @@ const DrugInteractionChecker2: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              First Drug *
-            </label>
-            <input
-              type="text"
-              value={drug1}
-              onChange={(e) => setDrug1(e.target.value)}
-              placeholder="Enter first drug name (e.g., aspirin)..."
-              className="w-full px-4 py-3 border border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Second Drug *
-            </label>
-            <input
-              type="text"
-              value={drug2}
-              onChange={(e) => setDrug2(e.target.value)}
-              placeholder="Enter second drug name (e.g., warfarin)..."
-              className="w-full px-4 py-3 border border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            />
-          </div>
+          <DrugAutocomplete
+            value={drug1}
+            onChange={setDrug1}
+            placeholder="Enter first drug name (e.g., aspirin)..."
+            label="First Drug"
+            required
+          />
+          <DrugAutocomplete
+            value={drug2}
+            onChange={setDrug2}
+            placeholder="Enter second drug name (e.g., warfarin)..."
+            label="Second Drug"
+            required
+          />
         </div>
 
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Medical Conditions (Optional)
-          </label>
-          <input
-            type="text"
+          <ConditionAutocomplete
             value={conditions}
-            onChange={(e) => setConditions(e.target.value)}
+            onChange={setConditions}
             placeholder="Enter conditions separated by commas (e.g., Hypertension, Diabetes)..."
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+            label="Medical Conditions (Optional)"
           />
           <p className="text-xs text-gray-600 mt-1">
             Adding conditions helps provide more accurate interaction severity
@@ -283,31 +298,31 @@ const DrugInteractionChecker2: React.FC = () => {
           {/* Interaction Alert Banner */}
           {results.interaction.exists && (
             <div className={`rounded-lg p-4 mb-6 border-l-4 ${
-              results.interaction.severity_score >= 4 
+              (results.interaction.severity_score ?? 0) >= 4
                 ? 'bg-red-100 border-red-500 text-red-800'
-                : results.interaction.severity_score >= 3
+                : (results.interaction.severity_score ?? 0) >= 3
                 ? 'bg-orange-100 border-orange-500 text-orange-800'
-                : results.interaction.severity_score >= 2
+                : (results.interaction.severity_score ?? 0) >= 2
                 ? 'bg-yellow-100 border-yellow-500 text-yellow-800'
-                : 'bg-blue-100 border-blue-500 text-blue-800'
+                : 'bg-green-100 border-green-500 text-green-800'
             }`}>
               <div className="flex items-center gap-3">
                 <div className="text-2xl">
-                  {results.interaction.severity_score >= 4 ? '🚫' : 
-                   results.interaction.severity_score >= 3 ? '⚠️' : 
-                   results.interaction.severity_score >= 2 ? '⚠️' : 'ℹ️'}
+                  {(results.interaction.severity_score ?? 0) >= 4 ? '🚫' :
+                   (results.interaction.severity_score ?? 0) >= 3 ? '⚠️' :
+                   (results.interaction.severity_score ?? 0) >= 2 ? '⚠️' : 'ℹ️'}
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">
-                    {results.interaction.severity_score >= 4 ? 'CONTRAINDICATED - DO NOT USE TOGETHER' : 
-                     results.interaction.severity_score >= 3 ? 'MAJOR INTERACTION - CONSULT DOCTOR IMMEDIATELY' : 
-                     results.interaction.severity_score >= 2 ? 'MODERATE INTERACTION - MONITOR CLOSELY' : 
+                    {(results.interaction.severity_score ?? 0) >= 4 ? 'CONTRAINDICATED - DO NOT USE TOGETHER' :
+                     (results.interaction.severity_score ?? 0) >= 3 ? 'MAJOR INTERACTION - CONSULT DOCTOR IMMEDIATELY' :
+                     (results.interaction.severity_score ?? 0) >= 2 ? 'MODERATE INTERACTION - MONITOR CLOSELY' :
                      'MINOR INTERACTION - BE AWARE'}
                   </h3>
                   <p className="text-sm mt-1">
-                    {results.interaction.severity_score >= 4 ? 'This drug combination is dangerous and should be avoided.' : 
-                     results.interaction.severity_score >= 3 ? 'This combination requires immediate medical supervision.' : 
-                     results.interaction.severity_score >= 2 ? 'This combination may require dosage adjustments or monitoring.' : 
+                    {(results.interaction.severity_score ?? 0) >= 4 ? 'This drug combination is dangerous and should be avoided.' :
+                     (results.interaction.severity_score ?? 0) >= 3 ? 'This combination requires immediate medical supervision.' :
+                     (results.interaction.severity_score ?? 0) >= 2 ? 'This combination may require dosage adjustments or monitoring.' :
                      'This combination has minimal risk but awareness is recommended.'}
                   </p>
                 </div>
@@ -474,6 +489,18 @@ const DrugInteractionChecker2: React.FC = () => {
             </div>
           )}
         </div>
+      )}
+
+      {/* Critical Interaction Modal */}
+      {criticalModalData && (
+        <CriticalInteractionModal
+          isOpen={showCriticalModal}
+          onClose={() => setShowCriticalModal(false)}
+          severity={criticalModalData.severity}
+          drug1Name={criticalModalData.drug1Name}
+          drug2Name={criticalModalData.drug2Name}
+          description={criticalModalData.description}
+        />
       )}
 
       {/* Help Text */}

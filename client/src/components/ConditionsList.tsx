@@ -10,6 +10,7 @@ import {
 
 import { conditionsAPI } from "../services/api";
 import LoadingSpinner from "./LoadingSpinner";
+import ConditionDescription from "./ConditionDescription";
 
 interface Symptom {
   id: number;
@@ -77,11 +78,7 @@ const ConditionModal: React.FC<{
                 <Heart className="w-5 h-5 text-green-600" />
                 Description
               </h3>
-              <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-green-500">
-                <p className="text-gray-700 leading-relaxed">
-                  {condition.description}
-                </p>
-              </div>
+              <ConditionDescription condition={condition}/>
             </div>
 
             {/* Symptoms Section */}
